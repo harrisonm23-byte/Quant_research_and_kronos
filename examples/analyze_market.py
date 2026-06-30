@@ -289,6 +289,12 @@ def run_backtest(args, predictor):
         pred_dir = np.sign(pred_close[-1] - last_close)
         actual_dir = np.sign(actual[-1] - last_close)
 
+        # per-step directional agreement across the whole horizon (not just the
+        # terminal bar): of the pred_len steps, how often does the predicted
+        # move-from-origin share the actual move-from-origin's sign.
+        step_dir_hit = float(np.mean(np.sign(pred_close - last_close)
+                                     == np.sign(actual - last_close)))
+
         rows.append({
             "origin": o,
             "t": str(df["timestamps"].iloc[o]),
@@ -298,37 +304,24 @@ def run_backtest(args, predictor):
             "pred_ret": (pred_close[-1] - last_close) / last_close,
             "actual_ret": (actual[-1] - last_close) / last_close,
             "dir_hit": float(pred_dir == actual_dir),
+            "step_dir_hit": step_dir_hit,
             "mae": float(np.mean(np.abs(pred_close - actual))),
             "rmse": float(np.sqrt(np.mean((pred_close - actual) ** 2))),
             "mape": float(np.mean(np.abs((pred_close - actual) / (actual + 1e-9)))),
+            "abs_pct_err_terminal": float(abs(pred_close[-1] - actual[-1]) / (actual[-1] + 1e-9)),
+            "signed_pct_err_terminal": float((pred_close[-1] - actual[-1]) / (actual[-1] + 1e-9)),
         })
         print(f"  [{k+1}/{len(origins)}] {rows[-1]['t']}  "
               f"dir={'HIT' if rows[-1]['dir_hit'] else 'miss'}  "
               f"MAPE={rows[-1]['mape']:.3%}")
 
     res = pd.DataFrame(rows)
+    metrics = compute_backtest_stats(res, args.threshold,
+                                     meta={"symbol_csv": os.path.basename(args.csv),
+                                           "lookback": lookback, "pred_len": pred_len,
+                                           "step": step, "samples": args.samples})
 
-    # Simple forecast-driven long/flat strategy: go long for the horizon when the
-    # model predicts an up move above --threshold; otherwise stay flat.
-    res["traded"] = res["pred_ret"] > args.threshold
-    strat_ret = np.where(res["traded"], res["actual_ret"], 0.0)
-    bh_ret = res["actual_ret"].values  # buy-and-hold each window
-
-    metrics = {
-        "windows": len(res),
-        "directional_accuracy": round(float(res["dir_hit"].mean()), 4),
-        "mae_mean": round(float(res["mae"].mean()), 6),
-        "rmse_mean": round(float(res["rmse"].mean()), 6),
-        "mape_mean": round(float(res["mape"].mean()), 6),
-        "strategy_avg_return_per_window": round(float(np.mean(strat_ret)), 6),
-        "strategy_total_return": round(float(np.prod(1 + strat_ret) - 1), 6),
-        "strategy_win_rate": round(float(np.mean(strat_ret[res["traded"]] > 0)) if res["traded"].any() else 0.0, 4),
-        "buyhold_avg_return_per_window": round(float(np.mean(bh_ret)), 6),
-        "buyhold_total_return": round(float(np.prod(1 + bh_ret) - 1), 6),
-        "trades_taken": int(res["traded"].sum()),
-    }
-
-    print("\n=== Backtest summary ===")
+    print("\n=== Backtest statistics ===")
     print(json.dumps(metrics, indent=2))
     if args.out:
         res.to_csv(args.out, index=False)
@@ -336,6 +329,99 @@ def run_backtest(args, predictor):
             json.dump(metrics, f, indent=2)
         print(f"Saved per-window results to {args.out} and summary JSON alongside it.")
     return metrics, res
+
+
+def compute_backtest_stats(res, threshold, meta=None):
+    """Comprehensive evaluation stats for a walk-forward backtest.
+
+    Grouped into:
+      dataset      - what was tested
+      directional  - can the model call the direction of the move?
+      accuracy     - how far off are the price forecasts (margin of inaccuracy)?
+      bias         - does the model systematically over/under-shoot?
+      strategy     - economics of trading the signal vs buy-and-hold
+      baseline     - naive yardsticks to judge the above against
+    """
+    n = len(res)
+    pred_ret = res["pred_ret"].values
+    actual_ret = res["actual_ret"].values
+    pred_dir = np.sign(pred_ret)
+    actual_dir = np.sign(actual_ret)
+
+    # ---- directional ----
+    up = pred_dir > 0
+    down = pred_dir < 0
+    n_up, n_down = int(up.sum()), int(down.sum())
+    base_rate_up = float((actual_dir > 0).mean())          # how often it really rose
+    directional = {
+        "terminal_accuracy": round(float(res["dir_hit"].mean()), 4),
+        "per_step_accuracy": round(float(res["step_dir_hit"].mean()), 4),
+        "precision_when_predicting_up": round(float((actual_dir[up] > 0).mean()), 4) if n_up else None,
+        "precision_when_predicting_down": round(float((actual_dir[down] < 0).mean()), 4) if n_down else None,
+        "pct_calls_up": round(float(up.mean()), 4),
+        "pct_calls_down": round(float(down.mean()), 4),
+        "actual_up_rate": round(base_rate_up, 4),
+        "return_correlation": (round(float(np.corrcoef(pred_ret, actual_ret)[0, 1]), 4)
+                               if n > 1 and pred_ret.std() > 1e-12 and actual_ret.std() > 1e-12 else None),
+    }
+
+    # ---- accuracy (margin of inaccuracy on the terminal close) ----
+    abs_pct = res["abs_pct_err_terminal"].values
+    accuracy = {
+        "terminal_mape": round(float(abs_pct.mean()), 6),
+        "terminal_mape_median": round(float(np.median(abs_pct)), 6),
+        "terminal_mape_p90": round(float(np.percentile(abs_pct, 90)), 6),
+        "terminal_mape_worst": round(float(abs_pct.max()), 6),
+        "path_mape_mean": round(float(res["mape"].mean()), 6),
+        "mae_mean": round(float(res["mae"].mean()), 6),
+        "rmse_mean": round(float(res["rmse"].mean()), 6),
+    }
+
+    # ---- bias (signed: + = model overshoots / too bullish) ----
+    signed_pct = res["signed_pct_err_terminal"].values
+    bias = {
+        "mean_signed_pct_err": round(float(signed_pct.mean()), 6),
+        "mean_predicted_return": round(float(pred_ret.mean()), 6),
+        "mean_actual_return": round(float(actual_ret.mean()), 6),
+        "return_bias": round(float((pred_ret - actual_ret).mean()), 6),
+    }
+
+    # ---- strategy: long the horizon when predicted return > threshold ----
+    traded = (pred_ret > threshold)
+    strat_ret = np.where(traded, actual_ret, 0.0)
+    tr = actual_ret[traded]
+    wins, losses = tr[tr > 0], tr[tr < 0]
+    eq = np.cumprod(1 + strat_ret)
+    peak = np.maximum.accumulate(eq)
+    max_dd = float(((eq - peak) / np.where(peak == 0, 1, peak)).min()) if n else 0.0
+    strategy = {
+        "trades_taken": int(traded.sum()),
+        "win_rate": round(float((tr > 0).mean()), 4) if traded.any() else 0.0,
+        "avg_win": round(float(wins.mean()), 6) if len(wins) else 0.0,
+        "avg_loss": round(float(losses.mean()), 6) if len(losses) else 0.0,
+        "profit_factor": (round(float(wins.sum() / abs(losses.sum())), 4)
+                          if losses.sum() != 0 else None),
+        "avg_return_per_window": round(float(strat_ret.mean()), 6),
+        "total_return": round(float(np.prod(1 + strat_ret) - 1), 6),
+        "return_per_window_std": round(float(strat_ret.std()), 6),
+        "sharpe_per_window": (round(float(strat_ret.mean() / strat_ret.std()), 4)
+                              if strat_ret.std() > 1e-12 else None),
+        "max_drawdown": round(max_dd, 6),
+    }
+
+    # ---- naive baselines to judge against ----
+    bh = actual_ret
+    baseline = {
+        "buyhold_avg_return_per_window": round(float(bh.mean()), 6),
+        "buyhold_total_return": round(float(np.prod(1 + bh) - 1), 6),
+        "always_up_dir_accuracy": round(base_rate_up, 4),
+        "majority_class_dir_accuracy": round(max(base_rate_up, 1 - base_rate_up), 4),
+    }
+
+    out = {"dataset": {**(meta or {}), "windows": n}}
+    out.update({"directional": directional, "accuracy": accuracy,
+                "bias": bias, "strategy": strategy, "baseline": baseline})
+    return out
 
 
 # --------------------------------------------------------------------------- #

@@ -32,6 +32,16 @@ UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
 RANGE_ALIASES = {"1M": "1M", "6M": "6M", "1Y": "1Y", "2Y": "3Y", "3Y": "3Y",
                  "5Y": "5Y", "10Y": "10Y", "MAX": "10Y", "ALL": "10Y"}
 
+# Friendly interval aliases -> Alpha Vantage interval tokens. "daily" is handled
+# separately by the keyless sources above.
+INTERVAL_ALIASES = {
+    "1m": "1min", "1min": "1min",
+    "5m": "5min", "5min": "5min",
+    "15m": "15min", "15min": "15min",
+    "30m": "30min", "30min": "30min",
+    "60m": "60min", "1h": "60min", "60min": "60min", "hourly": "60min",
+}
+
 
 def _get(url, headers=None, timeout=30):
     req = urllib.request.Request(url, headers=headers or {"User-Agent": UA})
@@ -89,7 +99,54 @@ def fetch_nasdaq(symbol, rng):
     return rows
 
 
-def fetch(symbol, rng):
+def fetch_alphavantage(symbol, interval, api_key, months=None):
+    """Intraday OHLCV from Alpha Vantage. Requires a free API key.
+
+    `interval` is an Alpha Vantage token (1min/5min/15min/30min/60min). If
+    `months` (list of 'YYYY-MM') is given, fetch each historical month and
+    concatenate; otherwise fetch the most recent ~1-2 months (outputsize=full).
+    """
+    base = ("https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY"
+            f"&symbol={symbol.upper()}&interval={interval}&outputsize=full"
+            f"&adjusted=false&extended_hours=false&apikey={api_key}")
+    targets = [base + f"&month={m}" for m in months] if months else [base]
+    rows, key = [], f"Time Series ({interval})"
+    for url in targets:
+        payload = json.loads(_get(url))
+        if key not in payload:
+            # AV returns Note/Information on rate-limit or bad key/symbol.
+            msg = payload.get("Note") or payload.get("Information") or payload.get("Error Message") or str(payload)[:120]
+            raise ValueError(f"Alpha Vantage: {msg}")
+        for ts, d in payload[key].items():
+            close = float(d["4. close"]); vol = float(d["5. volume"])
+            rows.append({
+                "timestamps": ts,
+                "open": float(d["1. open"]), "high": float(d["2. high"]),
+                "low": float(d["3. low"]), "close": close,
+                "volume": vol, "amount": round(close * vol, 2),
+            })
+    rows.sort(key=lambda r: r["timestamps"])
+    return rows
+
+
+def fetch(symbol, rng, interval="daily", av_key=None, months=None):
+    # Intraday => Alpha Vantage only (keyless sources are daily-only).
+    if interval != "daily":
+        av_interval = INTERVAL_ALIASES.get(interval.lower())
+        if not av_interval:
+            raise ValueError(f"Unsupported interval '{interval}'. "
+                             f"Use daily or one of: {sorted(set(INTERVAL_ALIASES))}")
+        if not av_key:
+            raise RuntimeError("Intraday data needs an Alpha Vantage API key "
+                               "(--av-key or ALPHAVANTAGE_API_KEY env). Free at "
+                               "https://www.alphavantage.co/support/#api-key")
+        rows = fetch_alphavantage(symbol, av_interval, av_key, months)
+        if rows:
+            print(f"  {symbol}: {len(rows)} {av_interval} bars via alphavantage "
+                  f"({rows[0]['timestamps']} -> {rows[-1]['timestamps']})")
+            return rows
+        raise RuntimeError(f"Alpha Vantage returned no rows for {symbol} {av_interval}")
+
     errors = []
     for name, fn in (("stockanalysis", fetch_stockanalysis), ("nasdaq", fetch_nasdaq)):
         try:
@@ -116,16 +173,24 @@ def write_csv(rows, path):
 def main():
     p = argparse.ArgumentParser(description="Fetch OHLCV CSVs for analyze_market.py (no API key).")
     p.add_argument("symbols", nargs="+", help="Tickers, e.g. SPY QQQ AAPL")
-    p.add_argument("--range", default="5Y", help="History window: 1M/6M/1Y/3Y/5Y/10Y (default 5Y).")
+    p.add_argument("--range", default="5Y", help="Daily history window: 1M/6M/1Y/3Y/5Y/10Y (default 5Y).")
+    p.add_argument("--interval", default="daily",
+                   help="Bar size: daily (keyless) or intraday 1m/5m/15m/30m/1h (needs Alpha Vantage key).")
+    p.add_argument("--av-key", default=os.environ.get("ALPHAVANTAGE_API_KEY"),
+                   help="Alpha Vantage API key for intraday (or set ALPHAVANTAGE_API_KEY).")
+    p.add_argument("--months", default=None,
+                   help="Comma list of YYYY-MM for historical intraday, e.g. '2026-04,2026-05,2026-06'.")
     p.add_argument("--outdir", default="data", help="Directory to write <SYMBOL>.csv into.")
     args = p.parse_args()
 
-    print(f"Fetching {len(args.symbols)} symbol(s), range={args.range}")
+    months = [m.strip() for m in args.months.split(",")] if args.months else None
+    suffix = "" if args.interval == "daily" else f"_{args.interval.lower()}"
+    print(f"Fetching {len(args.symbols)} symbol(s), interval={args.interval}, range={args.range}")
     failures = []
     for sym in args.symbols:
         try:
-            rows = fetch(sym, args.range)
-            out = os.path.join(args.outdir, f"{sym.upper()}.csv")
+            rows = fetch(sym, args.range, interval=args.interval, av_key=args.av_key, months=months)
+            out = os.path.join(args.outdir, f"{sym.upper()}{suffix}.csv")
             write_csv(rows, out)
             print(f"  -> wrote {out}")
         except Exception as e:  # noqa: BLE001
