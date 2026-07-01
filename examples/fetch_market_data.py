@@ -148,18 +148,89 @@ def fetch_alpaca(symbol, timeframe, api_key, api_secret, days=60):
 
 
 # --------------------------------------------------------------------------- #
+# Crypto via Alpaca (v1beta3)
+# --------------------------------------------------------------------------- #
+def fetch_alpaca_crypto(symbol, timeframe, api_key, api_secret, days=60):
+    """Paginated crypto OHLCV from Alpaca's v1beta3 crypto endpoint.
+
+    `symbol` should be like BTC/USD, ETH/USD, etc.
+    """
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=days)
+    base = (f"https://data.alpaca.markets/v1beta3/crypto/us/bars"
+            f"?symbols={symbol.upper()}"
+            f"&timeframe={timeframe}"
+            f"&start={start.strftime('%Y-%m-%dT%H:%M:%SZ')}"
+            f"&end={end.strftime('%Y-%m-%dT%H:%M:%SZ')}"
+            f"&limit=10000")
+    headers = {
+        "APCA-API-KEY-ID": api_key,
+        "APCA-API-SECRET-KEY": api_secret,
+    }
+    rows = []
+    url = base
+    while url:
+        payload = json.loads(_get(url, headers=headers))
+        bars = payload.get("bars") or {}
+        for sym_key, bar_list in bars.items():
+            for b in bar_list:
+                close = float(b["c"]); vol = float(b["v"])
+                rows.append({
+                    "timestamps": b["t"].replace("T", " ").replace("Z", ""),
+                    "open": float(b["o"]), "high": float(b["h"]),
+                    "low": float(b["l"]), "close": close,
+                    "volume": vol, "amount": round(close * vol, 2),
+                })
+        npt = payload.get("next_page_token")
+        if npt:
+            url = base + f"&page_token={npt}"
+            time.sleep(0.3)
+        else:
+            url = None
+    rows.sort(key=lambda r: r["timestamps"])
+    return rows
+
+
+# --------------------------------------------------------------------------- #
 # Dispatch
 # --------------------------------------------------------------------------- #
+CRYPTO_SYMBOLS = {"BTC", "ETH", "SOL", "DOGE", "AVAX", "LINK", "DOT", "ADA",
+                  "XRP", "LTC", "MATIC", "UNI", "AAVE", "SHIB", "BCH"}
+
+
+def _is_crypto(symbol):
+    upper = symbol.upper().replace("/USD", "").replace("-USD", "")
+    return upper in CRYPTO_SYMBOLS or "/" in symbol
+
+
 def fetch(symbol, rng, interval="daily", alpaca_key=None, alpaca_secret=None, days=60):
+    if not alpaca_key or not alpaca_secret:
+        if interval != "daily":
+            raise RuntimeError(
+                "Intraday data needs Alpaca API credentials. Pass --alpaca-key "
+                "and --alpaca-secret (or set ALPACA_API_KEY / ALPACA_API_SECRET).")
+        if _is_crypto(symbol):
+            raise RuntimeError(
+                "Crypto data needs Alpaca API credentials. Pass --alpaca-key "
+                "and --alpaca-secret (or set ALPACA_API_KEY / ALPACA_API_SECRET).")
+
+    if _is_crypto(symbol):
+        crypto_sym = symbol.upper() if "/" in symbol else f"{symbol.upper()}/USD"
+        tf = ALPACA_INTERVALS.get(interval.lower(), "1Day" if interval == "daily" else None)
+        if not tf:
+            raise ValueError(f"Unsupported interval '{interval}'.")
+        rows = fetch_alpaca_crypto(crypto_sym, tf, alpaca_key, alpaca_secret, days=days)
+        if rows:
+            print(f"  {crypto_sym}: {len(rows)} {tf} bars via alpaca-crypto "
+                  f"({rows[0]['timestamps']} -> {rows[-1]['timestamps']})")
+            return rows
+        raise RuntimeError(f"Alpaca returned no crypto bars for {crypto_sym} {tf}")
+
     if interval != "daily":
         tf = ALPACA_INTERVALS.get(interval.lower())
         if not tf:
             raise ValueError(f"Unsupported interval '{interval}'. "
                              f"Use daily or one of: {sorted(set(ALPACA_INTERVALS))}")
-        if not alpaca_key or not alpaca_secret:
-            raise RuntimeError(
-                "Intraday data needs Alpaca API credentials. Pass --alpaca-key "
-                "and --alpaca-secret (or set ALPACA_API_KEY / ALPACA_API_SECRET).")
         rows = fetch_alpaca(symbol, tf, alpaca_key, alpaca_secret, days=days)
         if rows:
             print(f"  {symbol}: {len(rows)} {tf} bars via alpaca "
@@ -205,7 +276,7 @@ def main():
     p.add_argument("--outdir", default="data", help="Directory to write <SYMBOL>.csv into.")
     args = p.parse_args()
 
-    suffix = "" if args.interval == "daily" else f"_{args.interval.lower()}"
+    suffix = "" if args.interval == "daily" else f"_{args.interval.lower().replace('/', '')}"
     print(f"Fetching {len(args.symbols)} symbol(s), interval={args.interval}")
     failures = []
     for sym in args.symbols:
@@ -213,7 +284,8 @@ def main():
             rows = fetch(sym, args.range, interval=args.interval,
                          alpaca_key=args.alpaca_key, alpaca_secret=args.alpaca_secret,
                          days=args.days)
-            out = os.path.join(args.outdir, f"{sym.upper()}{suffix}.csv")
+            safe_sym = sym.upper().replace("/", "")
+            out = os.path.join(args.outdir, f"{safe_sym}{suffix}.csv")
             write_csv(rows, out)
             print(f"  -> wrote {out}")
         except Exception as e:  # noqa: BLE001
