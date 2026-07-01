@@ -425,6 +425,112 @@ def compute_backtest_stats(res, threshold, meta=None):
 
 
 # --------------------------------------------------------------------------- #
+# Mode: aggregate (higher-timeframe reconstruction test)
+# --------------------------------------------------------------------------- #
+#
+# The premise (the "language" analogy): predicting one small candle is like
+# predicting the next *word* -- mostly noise. What matters is whether a *run* of
+# predicted candles aggregates into the correct higher-timeframe candle (the
+# *sentence* / *paragraph*): its direction, its close, its high/low range, its
+# overall shape. This mode forecasts `pred_len` low-timeframe bars, then rolls
+# them up into candles at several aggregation levels and scores each level so we
+# can see whether coarser candles are reconstructed *better* than the raw bars.
+#
+def _agg_ohlc(arr):
+    """Aggregate an (n, 6) OHLCV block into one candle's (open, high, low, close)."""
+    return (float(arr[0, 0]), float(arr[:, 1].max()),
+            float(arr[:, 2].min()), float(arr[-1, 3]))
+
+
+def _interval_iou(l1, h1, l2, h2):
+    """Overlap-over-union of two price intervals [l,h] -- a price-zone match score."""
+    inter = max(0.0, min(h1, h2) - max(l1, l2))
+    union = max(h1, h2) - min(l1, l2)
+    return inter / union if union > 0 else 0.0
+
+
+def run_aggregate(args, predictor):
+    df = load_csv(args.csv, args.time_col, parse_rename(args.rename))
+    lookback = args.lookback or min(len(df) - 1, predictor.max_context)
+    pred_len = args.pred_len
+    step = args.step or pred_len
+    groups = sorted({int(g) for g in args.groups.split(",")
+                     if int(g) >= 1 and pred_len % int(g) == 0})
+    if not groups:
+        raise ValueError(f"No group size in '{args.groups}' divides pred_len={pred_len}.")
+
+    ts = pd.to_datetime(df["timestamps"])
+    base_min = max(1, int(round(ts.diff().dropna().median().total_seconds() / 60)))
+
+    origins = list(range(lookback, len(df) - pred_len, step))
+    if not origins:
+        raise ValueError("Not enough data for a single window.")
+    print(f"Aggregation test: {len(origins)} windows, pred_len={pred_len} "
+          f"({base_min}min bars), aggregation levels={groups}")
+
+    acc = {g: [] for g in groups}
+    for k, o in enumerate(origins):
+        x_df = df.iloc[o - lookback:o].reset_index(drop=True)
+        x_ts = x_df["timestamps"]
+        y_ts = df["timestamps"].iloc[o:o + pred_len].reset_index(drop=True)
+        paths = sample_paths(predictor, x_df, x_ts, y_ts, pred_len,
+                             args.samples, args.T, args.top_p, args.top_k)
+        mean_path = paths.mean(axis=0)                      # (pred_len, 6)
+        actual = df[OHLCV].iloc[o:o + pred_len].reset_index(drop=True).values
+        p0 = float(df["close"].iloc[o - 1])                 # last real close (decision price)
+
+        for g in groups:
+            for ci in range(pred_len // g):
+                seg = slice(ci * g, (ci + 1) * g)
+                pO, pH, pL, pC = _agg_ohlc(mean_path[seg])
+                aO, aH, aL, aC = _agg_ohlc(actual[seg])
+                acc[g].append({
+                    "pcolor": np.sign(pC - pO), "acolor": np.sign(aC - aO),
+                    "pnet": np.sign(pC - p0), "anet": np.sign(aC - p0),
+                    "close_ape": abs(pC - aC) / (abs(aC) + 1e-9),
+                    # range error normalized by price (stable even when a bar's
+                    # own high-low range is ~0), not by the actual range itself.
+                    "range_ape": abs((pH - pL) - (aH - aL)) / (p0 + 1e-9),
+                    "iou": _interval_iou(pL, pH, aL, aH),
+                })
+        if (k + 1) % 10 == 0:
+            print(f"  {k+1}/{len(origins)} windows")
+
+    levels = []
+    for g in groups:
+        R = pd.DataFrame(acc[g])
+        color_acc = float((R.pcolor == R.acolor).mean())
+        net_acc = float((R.pnet == R.anet).mean())
+        maj_color = float(max((R.acolor > 0).mean(), (R.acolor <= 0).mean()))
+        maj_net = float(max((R.anet > 0).mean(), (R.anet <= 0).mean()))
+        levels.append({
+            "level": f"{base_min * g}min", "group_bars": g, "candles": len(R),
+            "color_accuracy": round(color_acc, 4),          # candle green/red match
+            "color_baseline": round(maj_color, 4),          # majority-class yardstick
+            "color_edge": round(color_acc - maj_color, 4),  # lift over baseline
+            "netdir_accuracy": round(net_acc, 4),           # up/down vs decision price
+            "netdir_baseline": round(maj_net, 4),
+            "close_mape": round(float(R.close_ape.mean()), 6),
+            "range_mape": round(float(R.range_ape.mean()), 4),
+            "range_iou": round(float(R.iou.mean()), 4),      # price-zone overlap
+        })
+
+    out = {
+        "dataset": {"symbol_csv": os.path.basename(args.csv), "model": args.model_size,
+                    "lookback": lookback, "pred_len": pred_len, "base_minutes": base_min,
+                    "windows": len(origins)},
+        "levels": levels,
+    }
+    print("\n=== Aggregation reconstruction by timeframe ===")
+    print(json.dumps(out, indent=2))
+    if args.out:
+        with open(args.out, "w") as f:
+            json.dump(out, f, indent=2)
+        print(f"Saved aggregation report to {args.out}")
+    return out
+
+
+# --------------------------------------------------------------------------- #
 # CLI
 # --------------------------------------------------------------------------- #
 def parse_rename(spec):
@@ -472,6 +578,13 @@ def build_arg_parser():
     b.add_argument("--step", type=int, default=None, help="Bars between forecast origins (default = pred_len).")
     b.add_argument("--threshold", type=float, default=0.0,
                    help="Min predicted return to take a long position in the toy strategy.")
+
+    a = sub.add_parser("aggregate",
+                       help="Higher-timeframe reconstruction test: do predicted bars roll up into the right coarser candle?")
+    common(a)
+    a.add_argument("--step", type=int, default=None, help="Bars between forecast origins (default = pred_len).")
+    a.add_argument("--groups", default="1,2,3,4,6,12,24",
+                   help="Aggregation sizes in bars (those dividing pred_len are used).")
     return p
 
 
@@ -484,6 +597,8 @@ def main():
         run_signal(args, predictor)
     elif args.mode == "backtest":
         run_backtest(args, predictor)
+    elif args.mode == "aggregate":
+        run_aggregate(args, predictor)
 
 
 if __name__ == "__main__":
