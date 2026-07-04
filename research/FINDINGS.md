@@ -91,3 +91,19 @@ Sim (BS, modeled IV, 2% costs): short put spread (ATM/-2%) robust across IV regi
 (+8-12% of max risk per trade, WR 66-70%) on TT-A and 5DayLow signals. Long calls
 only viable in spike-exit mode; hold-to-expiry negative. High-WR small-move edges
 feed premium SELLING. Needs real-chain validation in paper account.
+
+## 7. COMMODITY TREND SLEEVE (gauntlet PASSED 2026-07-05, promoted to Tier 1.5)
+
+MA-cross long/flat on commodity ETFs, 10/40 daily (pre-registered pair; edge is
+parameter-robust across 5/20 -> 20/100):
+- USO: PF 2.29 both halves (1.85/1.96), +225% total vs B&H +39%. Ex-2020-episode
+  +223% -> NOT a one-event fluke. Strongest case.
+- GLD: PF 2.69 full; regime-loaded (flat 2016-21, +98% 2022-26). Keep with caveat.
+- SLV: marginal (PF 1.90, recent-loaded). Watchlist only.
+- UNG: FAILS everything (PF<0.8) -- contango decay too fast for long-only trend. Excluded.
+Deploy spec: GLD + USO, 10/40 daily cross, long/flat, next-open fills. ~8 fires/yr,
+multi-week holds, uncorrelated with equity mean-reversion set (portfolio diversifier,
+not a frequency fix).
+Killed post-goal: gap-up continuation (62% full-sample -> 51-54% recent half).
+Grade v2 (v1 + Friday+1 + SKEWrising+0.5, A-tier >=2.5): recent-half WR 68-74%,
++0.65%/trade, ~2 fires/mo. Best signal to date.
