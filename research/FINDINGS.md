@@ -92,7 +92,7 @@ Sim (BS, modeled IV, 2% costs): short put spread (ATM/-2%) robust across IV regi
 only viable in spike-exit mode; hold-to-expiry negative. High-WR small-move edges
 feed premium SELLING. Needs real-chain validation in paper account.
 
-## 7. COMMODITY TREND SLEEVE (gauntlet PASSED 2026-07-05, promoted to Tier 1.5)
+## 7. COMMODITY TREND SLEEVE (gauntlet PASSED 2026-07-05 -> DEPLOYED KEEPER #4)
 
 MA-cross long/flat on commodity ETFs, 10/40 daily (pre-registered pair; edge is
 parameter-robust across 5/20 -> 20/100):
@@ -103,7 +103,8 @@ parameter-robust across 5/20 -> 20/100):
 - UNG: FAILS everything (PF<0.8) -- contango decay too fast for long-only trend. Excluded.
 Deploy spec: GLD + USO, 10/40 daily cross, long/flat, next-open fills. ~8 fires/yr,
 multi-week holds, uncorrelated with equity mean-reversion set (portfolio diversifier,
-not a frequency fix).
+not a frequency fix). PROMOTED to deployed keeper #4 at reduced sizing (n=38-43 trades
+per asset vs 200-300 for equity keepers -> wider uncertainty, smaller allocation).
 Killed post-goal: gap-up continuation (62% full-sample -> 51-54% recent half).
 Grade v2 (v1 + Friday+1 + SKEWrising+0.5, A-tier >=2.5): recent-half WR 68-74%,
 +0.65%/trade, ~2 fires/mo. Best signal to date.
