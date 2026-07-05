@@ -108,3 +108,18 @@ per asset vs 200-300 for equity keepers -> wider uncertainty, smaller allocation
 Killed post-goal: gap-up continuation (62% full-sample -> 51-54% recent half).
 Grade v2 (v1 + Friday+1 + SKEWrising+0.5, A-tier >=2.5): recent-half WR 68-74%,
 +0.65%/trade, ~2 fires/mo. Best signal to date.
+
+## 8. SUPPORT/RESISTANCE ZONES (v1 1m + v2 5m, 2026-07-05)
+
+v2 zones: clustered pivots, VALID after >=2 touches >=60min apart, ATR-scaled width,
+close-confirmed breaks, retest tracking. SPY 5m 2016-2026, 9,168 events.
+- TOUCH-COUNT FOLKLORE INVERTED: more touches = weaker level, monotone both sides
+  (support 45.2->43.3->41.5% by touch#; resistance 50.5->48.6->46.1%)
+- Support tests: NULL even with proper zones (44.4% vs 45.0% base). At 1m: below chance.
+- Resistance test x LOUD volume (>1.5x): holds only 43.0% -> P(break up)=57.0% vs 45.0%
+  base = +12pts, largest intraday cell ever measured; EV ~3.5bp vs 4bp costs = breakeven.
+  Quiet-vol arrival at resistance: holds 52.6%. Volume law's 4th independent domain.
+- Break->retest->go: DEBUNKED (flip holds 52.5% vs 55.0% base)
+- Support breaks close-confirmed do NOT out-continue baseline (confirmation eats the move)
+- Rulebook context adopted: fresh zones > tested zones; never fade loud volume into a
+  level; retests are not confirmation.
