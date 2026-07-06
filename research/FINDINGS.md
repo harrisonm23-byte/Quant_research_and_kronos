@@ -123,3 +123,30 @@ close-confirmed breaks, retest tracking. SPY 5m 2016-2026, 9,168 events.
 - Support breaks close-confirmed do NOT out-continue baseline (confirmation eats the move)
 - Rulebook context adopted: fresh zones > tested zones; never fade loud volume into a
   level; retests are not confirmation.
+
+## 9. CRISIS SLEEVE E + VIX BUY-THE-FEAR (2026-07-06)
+
+VIX first-cross forward returns (SPY/QQQ, 2016-2026, ~5 independent crisis regimes):
+  VIX>35: SPY +5.6/11.4/19.3% (21/63/126d), 92% WR; QQQ +7.4/14.7/25.0%
+  VIX>40: +100% WR at 63d+ but n=5. Buy-the-fear = mean reversion at macro scale (6th domain)
+Leverage/inverse at VIX>35 (fwd 63d, worst drawdown-during-hold):
+  QQQ  +14% (worst -20%)  |  TQQQ +41% (worst -58%)  |  SQQQ -38% 0% WR (worst -62%)
+TQQQ oversold-entry-then-hold (RSI14<30 / 50d-low): +27-68% fwd, 75-87% WR, BUT
+  worst intra-hold drawdown -57 to -78%. "Hold-to-today" numbers (+800-3500%) are PURE
+  survivorship (QQQ 10x'd 2016-26; TQQQ launched 2010, never saw a real bear).
+  DotCom -83% Nasdaq => 3x = -99%+ permanent. "Just hold TQQQ" dies in a structural bear.
+
+SLEEVE E — Crisis buy-the-fear (dormant ~95%, fires ~1x/1-2yr on VIX>35 first cross):
+  CORE:       QQQ shares or ~12mo LEAPS (+14-25%/3-6mo, -20% worst). The default.
+  AGGRESSIVE: TQQQ SMALL size + EXIT on recovery (never hold-forever). +41% but -58% tail.
+  NEVER:      SQQQ (0% WR, structural anti-trade). Size for the drawdown not the average.
+  Fits book's 30% cash sleeve = the dry powder this trigger is for. Wins whether the
+  crash is this year or after a 2-more-year melt-up; structure doesn't need the timing.
+
+IV-RANK GATE (phase 2, low priority): gate put-spread overlay sells on QQQ IV Rank>=50
+  & IV>HV. Dormant 6-12mo until forward IV history fills. Marginal, logged not prioritized.
+
+EXTERNAL VALIDATION: a public 9,120-backtest / 30-asset / 2010-2025 survivor terminal
+  ranked top survivors as RSI/Keltner/Zscore Revert (mean reversion) + Turtle/ADX/Dual
+  Momentum (trend), best Sharpes 1.0-1.18, scored by cross-asset survival count. Same two
+  families, same replication discipline, same realistic Sharpe range we converged on.
