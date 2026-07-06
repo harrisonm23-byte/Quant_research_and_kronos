@@ -1,0 +1,8 @@
+{
+  "start_date": "2026-07-02",
+  "note": "Update as the bot opens/closes trades. sleeve A=equity MR pool, B=commodity trend, C=BTC, D=cash.",
+  "open": [
+    {"sleeve": "A", "strategy": "IBS", "symbol": "QQQ", "entry_date": "2026-07-02", "entry_px": 725.71, "grade": null, "note": "pre-grade signal from 7/1 close"}
+  ],
+  "closed": []
+}
