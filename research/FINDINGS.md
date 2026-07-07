@@ -66,6 +66,11 @@ Time-split: GREEN 2017-21 = 75-78% WR (passes); 2022-26 = 61-63% (real but decay
 - CBOE SKEW level for next-day timing (no pattern)
 - Waiting for VWAP-reclaim before entering daily longs (-3 to -10bp)
 - Turnaround-Tuesday on SQQQ / anything long SQQQ
+- VWAP-rollover fade (EMA9 up->down turn while extended above a still-rising VWAP,
+  target VWAP tag, 0.25% stop): structure REAL (morning rollovers tag VWAP 60-66%,
+  both symbols) but ALL 24 cells net-negative — win capped at distance-to-VWAP (~0.12%)
+  vs 0.25% stop + 4bp costs. Farther from VWAP = MORE continuation (fuel, not stretch).
+  Kept as discretionary screen only, not a system.
 
 ## 4. THE GOAL (operationalized)
 
