@@ -1,8 +1,10 @@
 {
   "start_date": "2026-07-02",
   "note": "Update as the bot opens/closes trades. sleeve A=equity MR pool, B=commodity trend, C=BTC, D=cash.",
-  "open": [
-    {"sleeve": "A", "strategy": "IBS", "symbol": "QQQ", "entry_date": "2026-07-02", "entry_px": 725.71, "grade": null, "note": "pre-grade signal from 7/1 close", "exit_pending": "2026-07-09 open (IBS 0.93 > 0.70 at 7/8 close)"}
-  ],
-  "closed": []
+  "open": [],
+  "closed": [
+    {"sleeve": "A", "strategy": "IBS", "symbol": "QQQ", "entry_date": "2026-07-02", "entry_px": 725.71,
+     "exit_date": "2026-07-09", "exit_px": 718.19, "ret": -0.01036, "grade": null,
+     "note": "pre-grade signal from 7/1 close; exit IBS 0.93 at 7/8 close, filled 7/9 open 718.33 less 2bp slip; worst mark -2.24%"}
+  ]
 }
