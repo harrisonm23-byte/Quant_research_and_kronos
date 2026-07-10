@@ -80,6 +80,14 @@ Time-split: GREEN 2017-21 = 75-78% WR (passes); 2022-26 = 61-63% (real but decay
   both symbols) but ALL 24 cells net-negative — win capped at distance-to-VWAP (~0.12%)
   vs 0.25% stop + 4bp costs. Farther from VWAP = MORE continuation (fuel, not stretch).
   Kept as discretionary screen only, not a system.
+- Early loud spike -> quiet counter-float -> afternoon snap-back in spike direction:
+  NO (2026-07-10, 5m dvol deseasonalized by time-of-day). Pure form barely exists
+  (~6 days/decade — spike days stay loud, 95% print another 2x bar). Relaxed form
+  (n=182 SPY / 263 QQQ float-against days): afternoon goes spike-direction only
+  46-49% (coin flip), halves flip sign = noise. The float direction mildly persists
+  instead. USEFUL BYPRODUCT: after an early loud DOWN-spike that then floats up
+  quietly, the morning flush low holds the rest of day ~70-73% (revisit only 27-30%)
+  -> loud early flush + quiet recovery = the low is probably in (climax reading).
 
 ## 4. THE GOAL (operationalized)
 
