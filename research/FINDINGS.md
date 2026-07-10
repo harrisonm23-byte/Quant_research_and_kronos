@@ -54,6 +54,15 @@ Time-split: GREEN 2017-21 = 75-78% WR (passes); 2022-26 = 61-63% (real but decay
 - SKEW 5d-rise: +3-5pts, both symbols, 3 independent appearances (weak stable adder)
 - Tight stops (0.15-0.25%) destroy sub-10bp edges. Mean reversion wants immediacy
   (buy the open), not confirmation.
+- SMA9 crosses (5m) are highly PREDICTABLE but carry NO post-cross edge (2026-07-10,
+  n=97k events/symbol, both symbols+halves). P(next bar closes across) spans 3% ->
+  ~40% by state: close-to-line distance (>0.15% away = 3-5%; within 0.03% = 35-44%),
+  counter-trend closes (0 = 7%; 2 = 32-36%), EMA9 already opposed (24-30%) vs leading
+  (8-9%), RSI trendward, and QUIET volume crosses more than loud (loud = trend feeding,
+  4th confirmation of the volume law). Best combo: EMA9-opposed + 2 counter closes =
+  38-44% vs EMA9-leading + 0 counter = 3% (13x spread, stable halves). BUT fwd 30-60m
+  after cross ~= 0bp vs baseline -> trend-break law holds at 5m: crosses END drifts,
+  never start reversals. Use as exit-timing / chase-avoidance state, never as an entry.
 
 ## 3. DEBUNKED (tested, dead)
 
