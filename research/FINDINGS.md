@@ -72,6 +72,12 @@ Time-split: GREEN 2017-21 = 75-78% WR (passes); 2022-26 = 61-63% (real but decay
   with index up-drift: downside momentum bursts carry, upside breaks get sold. Live
   candidate = surge downside break via PUT convexity (directional hit + defined risk),
   needs down-subset half-split + option-cost score before promotion.
+  DRILLED (down-subset, n=419 SPY/502 QQQ): the flush is FAST not sustained -- hits -0.3%
+  first on the movers, but P(still down at 60min)=42-43% (< coin flip) -> it BOUNCES.
+  Put breakeven needs premium <6-11bp (hold) or <13-23bp (perfect-low exit); real 0DTE
+  puts cost multiples -> NOT tradeable via options (move < premium). Verdict: discretionary
+  SCALP tell only; the reverting half aligns with flush-low-holds-70% + daily MR book
+  (fade the flush, don't chase). Options overlay stays on the DAILY high-WR signals.
 - SMA9 crosses (5m) are highly PREDICTABLE but carry NO post-cross edge (2026-07-10,
   n=97k events/symbol, both symbols+halves). P(next bar closes across) spans 3% ->
   ~40% by state: close-to-line distance (>0.15% away = 3-5%; within 0.03% = 35-44%),
