@@ -64,6 +64,14 @@ Time-split: GREEN 2017-21 = 75-78% WR (passes); 2022-26 = 61-63% (real but decay
   Release from corridor breaks UP 63-64% but up-release is choppy; the rarer DOWN-break is
   the one that travels (drift -0.02%, bigger MFE). METHOD NOTE: kill-filter would've logged
   this "no edge, debunked"; discovery mode extracted a usable WHEN-fact instead.
+- Volume-surge breakout from a TIGHT range (2026-07-10, both symbols): real but weak
+  and ASYMMETRIC. Base tight-range break continues ~55%; surge (dvol>=2.5) lifts SPY to
+  62% (QQQ 55%). BUT ~88% of breakouts never travel 0.3% in 60min (chop); drift ~0;
+  moves tiny (favMFE ~0.08-0.12%). The edge is a DOWNSIDE edge: surge DOWN-break
+  continues SPY 68% / QQQ 62%; surge UP-break FADES (QQQ 45%, mean-reverts). Consistent
+  with index up-drift: downside momentum bursts carry, upside breaks get sold. Live
+  candidate = surge downside break via PUT convexity (directional hit + defined risk),
+  needs down-subset half-split + option-cost score before promotion.
 - SMA9 crosses (5m) are highly PREDICTABLE but carry NO post-cross edge (2026-07-10,
   n=97k events/symbol, both symbols+halves). P(next bar closes across) spans 3% ->
   ~40% by state: close-to-line distance (>0.15% away = 3-5%; within 0.03% = 35-44%),
