@@ -54,6 +54,16 @@ Time-split: GREEN 2017-21 = 75-78% WR (passes); 2022-26 = 61-63% (real but decay
 - SKEW 5d-rise: +3-5pts, both symbols, 3 independent appearances (weak stable adder)
 - Tight stops (0.15-0.25%) destroy sub-10bp edges. Mean reversion wants immediacy
   (buy the open), not confirmation.
+- Bollinger-band WIDTH is a MAGNITUDE dial, not a direction (2026-07-10 discovery mode,
+  SMA9/lowerBB corridor, both symbols both halves): wide bands -> 60min MFE ~0.22%/0.29%
+  (SPY/QQQ) vs ~0.12%/0.16% normal (~2x range); tight bands -> ~0.08% (dead). Dwell/coil
+  time barely moves it. The move is SYMMETRIC (skew ~-3% in-state; the +11% "long-coil"
+  cell was an OVERLAP artifact -> de-overlapped race = 50/50, halves disagree). Compression
+  = a VOLATILITY signal (options/straddle lens or confluence FILTER for "when a move is
+  loaded"), never a directional share trade. Corridor state itself is symmetric-to-bearish.
+  Release from corridor breaks UP 63-64% but up-release is choppy; the rarer DOWN-break is
+  the one that travels (drift -0.02%, bigger MFE). METHOD NOTE: kill-filter would've logged
+  this "no edge, debunked"; discovery mode extracted a usable WHEN-fact instead.
 - SMA9 crosses (5m) are highly PREDICTABLE but carry NO post-cross edge (2026-07-10,
   n=97k events/symbol, both symbols+halves). P(next bar closes across) spans 3% ->
   ~40% by state: close-to-line distance (>0.15% away = 3-5%; within 0.03% = 35-44%),
