@@ -29,10 +29,11 @@ OUT = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(OUT)
 LOG = os.path.join(OUT, "otm_overlay_paper.csv")
 SYMBOL = "QQQ"
-OTM_PCT = 0.01          # refined: 1% OTM beats 2% in BS sim
-SPIKE_PCT = 0.0075
+OTM_PCT = 0.00          # ATM — must clear strike for real leverage
+SPIKE_PCT = 0.010       # exit when underlying +1.0% (past ATM strike)
 MAX_SESSIONS = 2
 CONTRACTS = 2
+EXPIRY_DTE = 1          # short-dated: same/next day — gamma is the point
 MAX_PREMIUM_USD = 250
 REQUIRE_QUIET = True    # volx <= 1.2
 STAT_START = pd.Timestamp("2017-04-01")
