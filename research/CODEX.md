@@ -47,13 +47,21 @@ T4. Volume-surge downside break of tight range: fast flush, hits -0.3% first 62-
 
 ## III. THE DEPLOYED BOOK (daily signals — where the edge actually pays)
 
-Sleeve A (40%) — Equity mean reversion pool, QQQ, one position at a time, priority:
-  IBS<0.20 (graded) > DoubleSeven > 5DayLow-A. Exit IBS>0.70 / D7 rules. No stops.
-  Next-open fills. Grade v2 (vol<=1.2x, SMA20>SMA50, Friday +1, SKEW +0.5; RSI<35,
-  3+ red, wide range -1): skip <0, A-tier >=2.5 = 68-74% WR recent.
-Sleeve B (20%) — Commodity trend: GLD + USO 10/40 daily cross, long/flat. ~8 fires/yr.
-Sleeve C (10%) — BTC DoubleSeven above 200SMA. (Candidate expansion: see Sleeve C+ below.)
-Sleeve D (30%) — Cash. Dry powder for Sleeve E.
+WEIGHTS: AGG-MAX locked 2026-07-13 (user call: maximize, paper phase).
+  A 55% / B 10% / C+ 20% / D 15%. Backtest ~25%/yr, realistic 15-19%, worst DD -35-45%.
+  (Rejected: 100% A-TQQQ ~37% backtest -- single-family fragility, -67% DD, no powder.)
+Sleeve A (55%) — Equity MR pool via TQQQ at pool signals (QQQ signals, TQQQ execution,
+  1/3 size rule retired under AGG-MAX -- full sleeve, sized BY the -67% DD math), one
+  position at a time, priority: IBS<0.20 (graded) > DoubleSeven > 5DayLow-A.
+  Exit IBS>0.70 / D7 rules. No stops. Next-open fills. Grade v2 (vol<=1.2x,
+  SMA20>SMA50, Friday +1, SKEW +0.5; RSI<35, 3+ red, wide range -1): skip <0.
+Sleeve B (10%) — Commodity trend: GLD + USO 10/40 daily cross, long/flat. ~8 fires/yr.
+Sleeve C+ (20%) — Crypto down-spike H2: vol>=2x 30d mean AND red day on
+  BTC/ETH/DOGE/LINK -> long at signal close (paper: next practical fill), hold 2 days,
+  no stops, 25% of sleeve per coin, ~60-65 fires/yr. Final bt: ann +19.5%, maxDD -17%,
+  Sharpe 0.92, every K/H cell positive. DECAY FLAG: 2024-26 +0.58%/tr vs 2021-23
+  +2.05%; 2026 YTD negative. Review at 25 forward fires. (BTC D7 retired into this.)
+Sleeve D (15%) — Cash. Dry powder for Sleeve E.
 Sleeve E (event) — VIX>35 first cross: buy QQQ shares/LEAPS (+14-25%/3-6mo, 92% WR,
   ~5 independent crises). TQQQ small + exit-on-recovery only. Never SQQQ.
 Options overlay (build phase): short put spreads on A-tier + high-WR daily signals.

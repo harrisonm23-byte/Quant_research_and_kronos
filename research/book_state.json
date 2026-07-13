@@ -1,6 +1,6 @@
 {
   "start_date": "2026-07-02",
-  "note": "Update as the bot opens/closes trades. sleeve A=equity MR pool, B=commodity trend, C=BTC, D=cash.",
+  "note": "AGG-MAX weights locked 2026-07-13: A 55% equity MR via TQQQ, B 10% GLD/USO trend, C 20% crypto down-spike H2 (BTC/ETH/DOGE/LINK), D 15% cash/crisis. A-signals still computed on QQQ; executed in TQQQ.",
   "open": [],
   "closed": [
     {"sleeve": "A", "strategy": "IBS", "symbol": "QQQ", "entry_date": "2026-07-02", "entry_px": 725.71,

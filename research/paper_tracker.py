@@ -63,7 +63,7 @@ def main():
 
     print(f"\n{'SLEEVE':<10s}{'trades':>8s}{'wins':>6s}{'WR':>7s}{'cum ret%':>10s}")
     total_ret = 1.0
-    weights = {"A": 0.40, "B": 0.20, "C": 0.10, "D": 0.30}
+    weights = {"A": 0.55, "B": 0.10, "C": 0.20, "D": 0.15}  # AGG-MAX locked 2026-07-13
     book = 0.0
     for sl in ["A", "B", "C", "D"]:
         rets = by_sleeve.get(sl, [])
