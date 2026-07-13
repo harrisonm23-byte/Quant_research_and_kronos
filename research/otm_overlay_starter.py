@@ -4,17 +4,21 @@
 Signal (at daily close):
   close < lower_band AND IBS < 0.30 AND close < SMA300 AND vol <= 1.2x20d
 
-Options (next session) — best BS-sim cell:
-  Buy 2× QQQ calls ~1% OTM, nearest weekly (~5 DTE)
-  Exit when QQQ high >= entry +0.75%, OR close of trade day 2
-  (hit rate ~83%, avg hold on winners ~1.1 sessions)
+Options (next session) — CORRECTED leverage cell:
+  Buy 2× QQQ ATM calls, ~1 DTE (same/next day)
+  Exit when QQQ high >= entry +1.0%, OR close of trade day 2
+
+Why ATM + short DTE (not 1-2% OTM / 5 DTE):
+  Exit target must CLEAR the strike. With 1% OTM and +0.75% exit,
+  the call stays OTM and barely magnifies. ATM 1-DTE + +1% exit
+  produces ~10x leverage on winners in the BS sim.
 
 Usage:
-  python3 otm_overlay_starter.py check          # signal tonight?
-  python3 otm_overlay_starter.py sim            # historical return sim
-  python3 otm_overlay_starter.py open           # log paper entry (after signal)
-  python3 otm_overlay_starter.py status         # open trades + exit levels
-  python3 otm_overlay_starter.py close          # apply exits to paper log
+  python3 otm_overlay_starter.py check
+  python3 otm_overlay_starter.py sim
+  python3 otm_overlay_starter.py open --entry PRICE
+  python3 otm_overlay_starter.py status
+  python3 otm_overlay_starter.py close
 """
 import argparse
 import math
@@ -143,10 +147,14 @@ def cmd_sim():
             k = min(j + MAX_SESSIONS - 1, nb - 1)
             Sx, ret, hit, held = c[k], c[k] / S0 - 1, False, k - j + 1
             elapsed = MAX_SESSIONS
-        c0 = _bs(S0, K, 5 / 252.0, iv0) * (1 + COST / 2)
+        T0 = EXPIRY_DTE / 252.0
+        Tx = max(EXPIRY_DTE - elapsed, 0.05) / 252.0
+        if EXPIRY_DTE <= 1 and spike is not None and elapsed >= EXPIRY_DTE:
+            Tx = 0.02 / 252.0
+        c0 = _bs(S0, K, T0, iv0) * (1 + COST / 2)
         ivx = iv0 * min(1.4, max(0.6, 1 - 3 * ret))
-        c1 = _bs(Sx, K, max(5 - elapsed, 0.05) / 252.0, ivx) * (1 - COST / 2)
-        if c0 <= 0:
+        c1 = _bs(Sx, K, Tx, ivx) * (1 - COST / 2)
+        if c0 < 0.05:
             continue
         pnls.append((c1 - c0) / c0)
         holds.append(held)
@@ -154,12 +162,15 @@ def cmd_sim():
         years.append(pd.Timestamp(df["date"].iloc[j]).year)
 
     a = np.array(pnls)
-    print(f"=== SIM: LB_quiet_sma300 | {OTM_PCT*100:.0f}% OTM | exit +{SPIKE_PCT*100:.2f}% / {MAX_SESSIONS}d ===")
+    strike_lbl = "ATM" if OTM_PCT == 0 else f"{OTM_PCT*100:.1f}% OTM"
+    print(f"=== SIM: LB_quiet_sma300 | {strike_lbl} | {EXPIRY_DTE} DTE | "
+          f"exit +{SPIKE_PCT*100:.2f}% / {MAX_SESSIONS}d ===")
     print(f"  n={len(a)}  WR={(a>0).mean():.0%}  avg={a.mean():+.1%}  med={np.median(a):+.1%}")
     print(f"  spike hit={np.mean(hits):.0%}  avgHold_hit="
           f"{np.mean([hh for hh, x in zip(holds, hits) if x]):.2f}d  "
           f"avgHold_miss={np.mean([hh for hh, x in zip(holds, hits) if not x]):.2f}d")
     print(f"  win avg={a[a>0].mean():+.1%}  loss avg={a[a<=0].mean():+.1%}")
+    print(f"  leverage vs +{SPIKE_PCT*100:.2f}% spot ≈ {a.mean()/SPIKE_PCT:.1f}x")
     dollar = MAX_PREMIUM_USD * a
     print(f"  ${MAX_PREMIUM_USD}/trade: total P&L=${dollar.sum():+.0f}  "
           f"avg=${dollar.mean():+.1f}/trade")
@@ -168,7 +179,7 @@ def cmd_sim():
         mask = np.array(years) == yr
         y = a[mask]
         print(f"  {yr:>6d}{len(y):>4d}{(y>0).mean():>6.0%}{y.mean():>+8.1%}{MAX_PREMIUM_USD*y.sum():>+8.0f}")
-    print("\n  Note: BS model with RV20 IV — not real option chains. Paper-validate.")
+    print("\n  Note: BS + RV20 IV — not real chains. Exit target must CLEAR the strike.")
 
 
 def _read_log():
