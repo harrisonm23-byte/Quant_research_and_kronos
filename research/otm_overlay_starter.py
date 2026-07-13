@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
-"""Starter OTM overlay — one signal (LB_sma300 on QQQ), paper log only.
+"""Starter OTM overlay — one signal (LB_quiet_sma300 on QQQ), paper log only.
 
 Signal (at daily close):
-  close < lower_band AND IBS < 0.30 AND close < SMA300
+  close < lower_band AND IBS < 0.30 AND close < SMA300 AND vol <= 1.2x20d
 
-Options (next session):
-  Buy 2× QQQ calls ~2% OTM, nearest weekly (~5 DTE)
+Options (next session) — best BS-sim cell:
+  Buy 2× QQQ calls ~1% OTM, nearest weekly (~5 DTE)
   Exit when QQQ high >= entry +0.75%, OR close of trade day 2
+  (hit rate ~83%, avg hold on winners ~1.1 sessions)
 
 Usage:
   python3 otm_overlay_starter.py check          # signal tonight?
+  python3 otm_overlay_starter.py sim            # historical return sim
   python3 otm_overlay_starter.py open           # log paper entry (after signal)
   python3 otm_overlay_starter.py status         # open trades + exit levels
   python3 otm_overlay_starter.py close          # apply exits to paper log
 """
 import argparse
+import math
 import os
 import subprocess
 import sys
-from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -27,11 +29,15 @@ OUT = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(OUT)
 LOG = os.path.join(OUT, "otm_overlay_paper.csv")
 SYMBOL = "QQQ"
-OTM_PCT = 0.02
+OTM_PCT = 0.01          # refined: 1% OTM beats 2% in BS sim
 SPIKE_PCT = 0.0075
 MAX_SESSIONS = 2
 CONTRACTS = 2
-MAX_PREMIUM_USD = 250  # starter size cap
+MAX_PREMIUM_USD = 250
+REQUIRE_QUIET = True    # volx <= 1.2
+STAT_START = pd.Timestamp("2017-04-01")
+R = 0.04
+COST = 0.02
 
 
 def _nn(*v):
@@ -67,8 +73,11 @@ def load():
 
 
 def signal_fired(r):
-    return (_nn(r.lower_band, r.sma300)
-            and r.close < r.lower_band and r.ibs < 0.30 and r.close < r.sma300)
+    ok = (_nn(r.lower_band, r.sma300)
+          and r.close < r.lower_band and r.ibs < 0.30 and r.close < r.sma300)
+    if ok and REQUIRE_QUIET:
+        ok = _nn(r.volx) and r.volx <= 1.2
+    return ok
 
 
 def cmd_check():
@@ -77,16 +86,88 @@ def cmd_check():
     d = r["date"].strftime("%Y-%m-%d")
     print(f"OTM overlay starter — {SYMBOL} bar {d}")
     print(f"  close={r['close']:.2f}  lower_band={r['lower_band']:.2f}  "
-          f"IBS={r['ibs']:.2f}  SMA300={r['sma300']:.2f}")
+          f"IBS={r['ibs']:.2f}  SMA300={r['sma300']:.2f}  volx={r['volx']:.2f}")
     if signal_fired(r):
         est_strike = round(r["close"] * (1 + OTM_PCT), 0)
         print("\n  >>> SIGNAL ON — paper entry next open <<<")
-        print(f"  Plan: {CONTRACTS}x ~{est_strike:.0f} call (~2% OTM), weekly expiry")
+        print(f"  Plan: {CONTRACTS}x ~{est_strike:.0f} call (~{OTM_PCT*100:.0f}% OTM), weekly expiry")
         print(f"  Exit: QQQ high >= entry×{1+SPIKE_PCT:.4f}  OR  session-{MAX_SESSIONS} close")
         print(f"  Size cap: ${MAX_PREMIUM_USD} total premium")
         print("\n  After open fills:  python3 otm_overlay_starter.py open --entry PRICE")
     else:
         print("\n  No signal. Flat.")
+
+
+def _N(x):
+    return 0.5 * (1 + math.erf(x / math.sqrt(2)))
+
+
+def _bs(S, K, T, iv):
+    if T <= 0:
+        return max(S - K, 0.0)
+    d1 = (math.log(S / K) + (R + iv * iv / 2) * T) / (iv * math.sqrt(T))
+    d2 = d1 - iv * math.sqrt(T)
+    return S * _N(d1) - K * math.exp(-R * T) * _N(d2)
+
+
+def cmd_sim():
+    """Historical BS sim of the starter playbook (quick spike exit)."""
+    df = load()
+    df["rv20"] = np.log(df["close"] / df["close"].shift(1)).rolling(20).std() * math.sqrt(252)
+    o, h, c = df["open"].values, df["high"].values, df["close"].values
+    rv = df["rv20"].values
+    rows = list(df.itertuples(index=False))
+    nb = len(df)
+
+    pnls, holds, hits, years = [], [], [], []
+    for i, r in enumerate(rows):
+        if r.date < STAT_START or i >= nb - 3:
+            continue
+        if not signal_fired(r):
+            continue
+        j = i + 1
+        if math.isnan(rv[j]) or rv[j] <= 0:
+            continue
+        S0, iv0 = o[j], rv[j]
+        K = S0 * (1 + OTM_PCT)
+        spike = None
+        for k in range(j, min(j + MAX_SESSIONS, nb)):
+            if h[k] >= S0 * (1 + SPIKE_PCT):
+                spike = k
+                break
+        if spike is not None:
+            Sx, ret, hit, held = S0 * (1 + SPIKE_PCT), SPIKE_PCT, True, spike - j + 1
+            elapsed = (spike - j) + 0.5
+        else:
+            k = min(j + MAX_SESSIONS - 1, nb - 1)
+            Sx, ret, hit, held = c[k], c[k] / S0 - 1, False, k - j + 1
+            elapsed = MAX_SESSIONS
+        c0 = _bs(S0, K, 5 / 252.0, iv0) * (1 + COST / 2)
+        ivx = iv0 * min(1.4, max(0.6, 1 - 3 * ret))
+        c1 = _bs(Sx, K, max(5 - elapsed, 0.05) / 252.0, ivx) * (1 - COST / 2)
+        if c0 <= 0:
+            continue
+        pnls.append((c1 - c0) / c0)
+        holds.append(held)
+        hits.append(hit)
+        years.append(pd.Timestamp(df["date"].iloc[j]).year)
+
+    a = np.array(pnls)
+    print(f"=== SIM: LB_quiet_sma300 | {OTM_PCT*100:.0f}% OTM | exit +{SPIKE_PCT*100:.2f}% / {MAX_SESSIONS}d ===")
+    print(f"  n={len(a)}  WR={(a>0).mean():.0%}  avg={a.mean():+.1%}  med={np.median(a):+.1%}")
+    print(f"  spike hit={np.mean(hits):.0%}  avgHold_hit="
+          f"{np.mean([hh for hh, x in zip(holds, hits) if x]):.2f}d  "
+          f"avgHold_miss={np.mean([hh for hh, x in zip(holds, hits) if not x]):.2f}d")
+    print(f"  win avg={a[a>0].mean():+.1%}  loss avg={a[a<=0].mean():+.1%}")
+    dollar = MAX_PREMIUM_USD * a
+    print(f"  ${MAX_PREMIUM_USD}/trade: total P&L=${dollar.sum():+.0f}  "
+          f"avg=${dollar.mean():+.1f}/trade")
+    print(f"\n  {'year':>6s}{'n':>4s}{'WR':>6s}{'avg':>8s}{'$pnl':>8s}")
+    for yr in sorted(set(years)):
+        mask = np.array(years) == yr
+        y = a[mask]
+        print(f"  {yr:>6d}{len(y):>4d}{(y>0).mean():>6.0%}{y.mean():>+8.1%}{MAX_PREMIUM_USD*y.sum():>+8.0f}")
+    print("\n  Note: BS model with RV20 IV — not real option chains. Paper-validate.")
 
 
 def _read_log():
@@ -206,15 +287,16 @@ def cmd_close():
 
 
 def main():
-    p = argparse.ArgumentParser(description="Starter OTM overlay (LB_sma300 / QQQ)")
+    p = argparse.ArgumentParser(description="Starter OTM overlay (LB_quiet_sma300 / QQQ)")
     sub = p.add_subparsers(dest="cmd", required=True)
     sub.add_parser("check", help="Check latest bar for signal")
+    sub.add_parser("sim", help="Historical return simulation")
     o = sub.add_parser("open", help="Log paper entry")
     o.add_argument("--entry", type=float, default=0.0, help="Fill price (default: next open)")
     sub.add_parser("status", help="Open trades + spike level")
     sub.add_parser("close", help="Close open trade using exit rules")
     args = p.parse_args()
-    {"check": cmd_check, "open": lambda: cmd_open(args.entry),
+    {"check": cmd_check, "sim": cmd_sim, "open": lambda: cmd_open(args.entry),
      "status": cmd_status, "close": cmd_close}[args.cmd]()
 
 
