@@ -1,7 +1,11 @@
 {
   "start_date": "2026-07-02",
   "note": "AGG-MAX weights locked 2026-07-13: A 55% equity MR via TQQQ, B 10% GLD/USO trend, C 20% crypto down-spike H2 (BTC/ETH/DOGE/LINK), D 15% cash/crisis. A-signals still computed on QQQ; executed in TQQQ.",
-  "open": [],
+  "open": [
+    {"sleeve": "A", "strategy": "IBS", "symbol": "TQQQ", "signal_symbol": "QQQ", "signal_date": "2026-07-13",
+     "entry_date": "2026-07-14", "entry_px": null, "grade": 2.0,
+     "note": "IBS 0.19 at 7/13 close (QQQ 711.74), grade +2 GREEN (quiet vol 0.8x, SMA20>SMA50). PENDING FILL at 7/14 open, TQQQ ref close 72.64. Exit rule: QQQ IBS>0.70 close -> sell next open. First AGG-MAX trade."}
+  ],
   "closed": [
     {"sleeve": "A", "strategy": "IBS", "symbol": "QQQ", "entry_date": "2026-07-02", "entry_px": 725.71,
      "exit_date": "2026-07-09", "exit_px": 718.19, "ret": -0.01036, "grade": null,
