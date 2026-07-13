@@ -4,14 +4,17 @@
 Signal (at daily close):
   close < lower_band AND IBS < 0.30 AND close < SMA300 AND vol <= 1.2x20d
 
-Options (next session) — CORRECTED leverage cell:
-  Buy 2× QQQ ATM calls, ~1 DTE (same/next day)
-  Exit when QQQ high >= entry +1.0%, OR close of trade day 2
+Options (next session):
+  Buy 2× QQQ ATM (or lightly OTM) calls, ~1 DTE
+  Take-profit: QQQ high >= entry +1.0%
+  Stop: EOD only — if close <= entry -1.0% (do NOT use intraday stops;
+        mean-reversion dips before bouncing)
+  Time stop: close of session 2
+  Hard risk cap: $250 premium = max loss
 
-Why ATM + short DTE (not 1-2% OTM / 5 DTE):
-  Exit target must CLEAR the strike. With 1% OTM and +0.75% exit,
-  the call stays OTM and barely magnifies. ATM 1-DTE + +1% exit
-  produces ~10x leverage on winners in the BS sim.
+Note on OTM: price need NOT reach the strike — a move TOWARD the strike
+still lifts OTM premium via delta/gamma. Far OTM (2%+) underperforms here
+because typical MFE is ~2%, not 3%+. Prefer ATM to ~1% OTM.
 
 Usage:
   python3 otm_overlay_starter.py check
@@ -34,12 +37,13 @@ REPO = os.path.dirname(OUT)
 LOG = os.path.join(OUT, "otm_overlay_paper.csv")
 SYMBOL = "QQQ"
 OTM_PCT = 0.00          # ATM — must clear strike for real leverage
-SPIKE_PCT = 0.010       # exit when underlying +1.0% (past ATM strike)
+SPIKE_PCT = 0.010       # take-profit when underlying +1.0%
+EOD_STOP_PCT = 0.010    # exit at close if underlying <= entry -1% (no intraday stop)
 MAX_SESSIONS = 2
 CONTRACTS = 2
-EXPIRY_DTE = 1          # short-dated: same/next day — gamma is the point
-MAX_PREMIUM_USD = 250
-REQUIRE_QUIET = True    # volx <= 1.2
+EXPIRY_DTE = 1          # short-dated — gamma is the point
+MAX_PREMIUM_USD = 250   # hard risk cap = true max loss
+REQUIRE_QUIET = True
 STAT_START = pd.Timestamp("2017-04-01")
 R = 0.04
 COST = 0.02
