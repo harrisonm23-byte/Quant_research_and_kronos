@@ -67,15 +67,26 @@ def masks(df, name):
             first_dn & col("prior_up") & col("rsi35") & col("vix5_rising"), "long"),
         "L1m_5m_bbdn_prior_up_vix_ma10": (
             first_dn & col("prior_up") & col("vix_above_ma10"), "long"),
-        # HTF-confirmed (from signal_htf_combo — cross-asset recurring)
+        # HTF-confirmed (from signal_htf_combo / consensus across SPY/QQQ/DIA/IWM)
         "L1h_5m_prior_up_1h_below_sma9": (
             first_dn & col("prior_up") & col("1h_below_sma9"), "long"),
+        "L1c_5m_prior_up_15m_candle_dn": (
+            first_dn & col("prior_up") & col("15m_candle_dn"), "long"),
+        "L1cw_5m_prior_up_15m_cdn_1w_sma9": (
+            first_dn & col("prior_up") & col("15m_candle_dn") & col("1w_above_sma9"), "long"),
+        "L1w_5m_prior_up_1w_above_sma9": (
+            first_dn & col("prior_up") & col("1w_above_sma9"), "long"),
         "L2h_5m_hvol_15m_candle_dn": (
             first_dn & col("prior_up") & col("high_vol") & col("15m_candle_dn"), "long"),
         "L3h_5m_rsi35_15m_candle_dn": (
             first_dn & col("prior_up") & col("rsi35") & col("15m_candle_dn"), "long"),
         "L3a_5m_rsi35_1h_above_sma9": (
             first_dn & col("prior_up") & col("rsi35") & col("1h_above_sma9"), "long"),
+        "L3w_5m_rsi35_1w_above_sma9": (
+            first_dn & col("prior_up") & col("rsi35") & col("1w_above_sma9"), "long"),
+        "L3cw_5m_rsi35_15m_below_1w_sma9": (
+            first_dn & col("prior_up") & col("rsi35") & col("15m_below_sma9")
+            & col("1w_above_sma9"), "long"),
         "S1_15m_bbup_vwap_rsi65": (
             first_up & col("stretch_ok_short") & col("rsi65"), "short"),
         "S2_15m_bbup_gap_up_stretch025": (
@@ -104,9 +115,14 @@ PARTS = {
     "L3v_5m_bbdn_prior_up_rsi35_vix5up": ["prior_up", "rsi35", "vix5_rising"],
     "L1m_5m_bbdn_prior_up_vix_ma10": ["prior_up", "vix_above_ma10"],
     "L1h_5m_prior_up_1h_below_sma9": ["prior_up", "1h_below_sma9"],
+    "L1c_5m_prior_up_15m_candle_dn": ["prior_up", "15m_candle_dn"],
+    "L1cw_5m_prior_up_15m_cdn_1w_sma9": ["prior_up", "15m_candle_dn", "1w_above_sma9"],
+    "L1w_5m_prior_up_1w_above_sma9": ["prior_up", "1w_above_sma9"],
     "L2h_5m_hvol_15m_candle_dn": ["prior_up", "high_vol", "15m_candle_dn"],
     "L3h_5m_rsi35_15m_candle_dn": ["prior_up", "rsi35", "15m_candle_dn"],
     "L3a_5m_rsi35_1h_above_sma9": ["prior_up", "rsi35", "1h_above_sma9"],
+    "L3w_5m_rsi35_1w_above_sma9": ["prior_up", "rsi35", "1w_above_sma9"],
+    "L3cw_5m_rsi35_15m_below_1w_sma9": ["prior_up", "rsi35", "15m_below_sma9", "1w_above_sma9"],
     "S1_15m_bbup_vwap_rsi65": ["stretch_ok_short", "rsi65"],
     "S2_15m_bbup_gap_up_stretch025": ["gap_up", "stretch025"],
     "S3_5m_bbup_prior_down_rsi65": ["prior_down", "rsi65"],
@@ -126,9 +142,14 @@ def run_all(frames):
         ("5m", "L3v_5m_bbdn_prior_up_rsi35_vix5up"),
         ("5m", "L1m_5m_bbdn_prior_up_vix_ma10"),
         ("5m", "L1h_5m_prior_up_1h_below_sma9"),
+        ("5m", "L1c_5m_prior_up_15m_candle_dn"),
+        ("5m", "L1cw_5m_prior_up_15m_cdn_1w_sma9"),
+        ("5m", "L1w_5m_prior_up_1w_above_sma9"),
         ("5m", "L2h_5m_hvol_15m_candle_dn"),
         ("5m", "L3h_5m_rsi35_15m_candle_dn"),
         ("5m", "L3a_5m_rsi35_1h_above_sma9"),
+        ("5m", "L3w_5m_rsi35_1w_above_sma9"),
+        ("5m", "L3cw_5m_rsi35_15m_below_1w_sma9"),
         ("15m", "L4_15m_bbdn_stretch035"),
         ("15m", "L5_15m_bbdn_rsi30"),
         ("15m", "S1_15m_bbup_vwap_rsi65"),

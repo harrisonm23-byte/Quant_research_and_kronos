@@ -59,6 +59,18 @@ KEEPER_SPECS = [
     ("5m", "L2v_5m_bbdn_prior_up_hvol_vix5up", ["prior_up", "high_vol", "vix5_rising"], "bb_dn"),
     ("5m", "L3v_5m_bbdn_prior_up_rsi35_vix5up", ["prior_up", "rsi35", "vix5_rising"], "bb_dn"),
     ("5m", "L1m_5m_bbdn_prior_up_vix_ma10", ["prior_up", "vix_above_ma10"], "bb_dn"),
+    # HTF-confirmed (need build_panel flags on 5m)
+    ("5m", "L1h_5m_prior_up_1h_below_sma9", ["prior_up", "1h_below_sma9"], "bb_dn"),
+    ("5m", "L1c_5m_prior_up_15m_candle_dn", ["prior_up", "15m_candle_dn"], "bb_dn"),
+    ("5m", "L1cw_5m_prior_up_15m_cdn_1w_sma9",
+     ["prior_up", "15m_candle_dn", "1w_above_sma9"], "bb_dn"),
+    ("5m", "L1w_5m_prior_up_1w_above_sma9", ["prior_up", "1w_above_sma9"], "bb_dn"),
+    ("5m", "L2h_5m_hvol_15m_candle_dn", ["prior_up", "high_vol", "15m_candle_dn"], "bb_dn"),
+    ("5m", "L3h_5m_rsi35_15m_candle_dn", ["prior_up", "rsi35", "15m_candle_dn"], "bb_dn"),
+    ("5m", "L3a_5m_rsi35_1h_above_sma9", ["prior_up", "rsi35", "1h_above_sma9"], "bb_dn"),
+    ("5m", "L3w_5m_rsi35_1w_above_sma9", ["prior_up", "rsi35", "1w_above_sma9"], "bb_dn"),
+    ("5m", "L3cw_5m_rsi35_15m_below_1w_sma9",
+     ["prior_up", "rsi35", "15m_below_sma9", "1w_above_sma9"], "bb_dn"),
     ("15m", "L4_15m_bbdn_stretch035", ["stretch035"], "bb_dn"),
     ("15m", "L5_15m_bbdn_rsi30", ["rsi30"], "bb_dn"),
     ("15m", "S1_15m_bbup_vwap_rsi65", ["stretch_ok_short", "rsi65"], "bb_up"),
@@ -79,6 +91,19 @@ NEST_CHILDREN = {
         "L1v_5m_bbdn_prior_up_vix5up",
         "L1m_5m_bbdn_prior_up_vix_ma10",
         "L1h_5m_prior_up_1h_below_sma9",
+        "L1c_5m_prior_up_15m_candle_dn",
+        "L1w_5m_prior_up_1w_above_sma9",
+        "L1cw_5m_prior_up_15m_cdn_1w_sma9",
+    ],
+    "L1c_5m_prior_up_15m_candle_dn": [
+        "L1cw_5m_prior_up_15m_cdn_1w_sma9",
+        "L2h_5m_hvol_15m_candle_dn",
+        "L3h_5m_rsi35_15m_candle_dn",
+    ],
+    "L1w_5m_prior_up_1w_above_sma9": [
+        "L1cw_5m_prior_up_15m_cdn_1w_sma9",
+        "L3w_5m_rsi35_1w_above_sma9",
+        "L3cw_5m_rsi35_15m_below_1w_sma9",
     ],
     "L2_5m_bbdn_prior_up_hvol": [
         "L2v_5m_bbdn_prior_up_hvol_vix5up",
@@ -88,6 +113,14 @@ NEST_CHILDREN = {
         "L3v_5m_bbdn_prior_up_rsi35_vix5up",
         "L3h_5m_rsi35_15m_candle_dn",
         "L3a_5m_rsi35_1h_above_sma9",
+        "L3w_5m_rsi35_1w_above_sma9",
+        "L3cw_5m_rsi35_15m_below_1w_sma9",
+    ],
+    "L3h_5m_rsi35_15m_candle_dn": [
+        "L3cw_5m_rsi35_15m_below_1w_sma9",
+    ],
+    "L3w_5m_rsi35_1w_above_sma9": [
+        "L3cw_5m_rsi35_15m_below_1w_sma9",
     ],
     "L1v_5m_bbdn_prior_up_vix5up": [
         "L2v_5m_bbdn_prior_up_hvol_vix5up",
@@ -101,11 +134,20 @@ NEST_CHILDREN = {
 
 # Priority within a nest (higher wins). Used when resolving same-bar conflicts.
 PRIORITY = {
+    "L3cw_5m_rsi35_15m_below_1w_sma9": 58,
     "L3v_5m_bbdn_prior_up_rsi35_vix5up": 50,
     "L2v_5m_bbdn_prior_up_hvol_vix5up": 45,
+    "L3h_5m_rsi35_15m_candle_dn": 44,
+    "L3a_5m_rsi35_1h_above_sma9": 43,
+    "L3w_5m_rsi35_1w_above_sma9": 42,
+    "L1cw_5m_prior_up_15m_cdn_1w_sma9": 41,
     "L3_5m_bbdn_prior_up_rsi35": 40,
+    "L2h_5m_hvol_15m_candle_dn": 38,
     "L2_5m_bbdn_prior_up_hvol": 35,
+    "L1c_5m_prior_up_15m_candle_dn": 33,
+    "L1h_5m_prior_up_1h_below_sma9": 32,
     "L1v_5m_bbdn_prior_up_vix5up": 30,
+    "L1w_5m_prior_up_1w_above_sma9": 28,
     "L1m_5m_bbdn_prior_up_vix_ma10": 25,
     "L1_5m_bbdn_prior_up": 10,
     "S1v_15m_bbup_vwap_rsi65_vix5crush": 40,
@@ -204,12 +246,16 @@ def exclusive_stats(frames, min_n=8):
 
 
 def load_frames():
-    df5 = s.load_5m()
-    daily = s.load_daily()
-    frames = s.build_frames(df5, daily)
-    for tf in ["5m", "15m", "30m", "1h"]:
+    """5m panel with HTF states + VIX; 15m for L4/L5/S* keepers."""
+    import signal_htf_combo as htf
+    panel5 = htf.build_panel("SPY")
+    # 15m frame for stretch/RSI keepers (enriched, no full HTF needed)
+    raw5 = htf.load_5m("SPY")
+    daily = htf.load_daily("SPY")
+    frames = s.build_frames(raw5, daily)
+    frames["5m"] = p3.enrich(panel5)
+    for tf in ["15m", "30m", "1h"]:
         frames[tf] = p3.enrich(frames[tf])
-    # attach VIX (daily + 5m) when available
     try:
         import signal_vix_study as vx
         vix_d = vx.prep_vix_daily(vx.fetch_vix_daily())
