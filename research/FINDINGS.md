@@ -123,3 +123,47 @@ close-confirmed breaks, retest tracking. SPY 5m 2016-2026, 9,168 events.
 - Support breaks close-confirmed do NOT out-continue baseline (confirmation eats the move)
 - Rulebook context adopted: fresh zones > tested zones; never fade loud volume into a
   level; retests are not confirmation.
+
+## 9. INTRADAY BB-FADE EXIT SET (FORWARD PAPER, 2026-07-15)
+
+Entry definitions (5m, completed signal bar, enter next open):
+- L1 = first lower-BB close + prior session up.
+- L2 = L1 + volume >=1.25x rolling median.
+- L3 = L1 + RSI14<=35.
+- Operational sampling = first eligible signal per setup per session. One capital
+  allocation per symbol/setup; 120m and EOD exits are virtual alternatives, not
+  positions to stack.
+
+Execution-correct study: same-session only, one position/setup, 1.5bp slippage/side.
+The old fixed-25m test materially truncated delayed rebounds.
+
+```
+Matched first signal/day       n     25m WR   60m WR  120m WR   EOD WR
+QQQ historical 2014-15 L1      60      60.0      61.7      73.3      81.7
+QQQ historical 2014-15 L2      56      57.1      64.3      73.2      80.4
+QQQ historical 2014-15 L3      36      66.7      61.1      77.8      86.1
+QQQ recent ~60d L1             28      50.0      60.7      82.1      85.7
+QQQ recent ~60d L2             25      56.0      68.0      80.0      84.0
+QQQ recent ~60d L3             14      78.6      78.6      92.9     100.0
+TQQQ recent ~60d L1            28      60.7      67.9      85.7      89.3
+TQQQ recent ~60d L2            25      60.0      72.0      80.0      84.0
+TQQQ recent ~60d L3            14      78.6      85.7      92.9     100.0
+```
+
+Interpretation:
+- QQQ independently confirms the delayed-bounce / longer-exit mechanism.
+- Recent L3 100% figures are tiny-n observations, never planning assumptions.
+- TQQQ has no comparable long-history validation yet: WATCH only, preferably
+  underlying at <=1/3 QQQ notional. TQQQ options are research-only (double leverage).
+- QQQ strategies enter forward paper with both fixed-120m and EOD virtual exits.
+
+Options overlays (modeled/paper only; real-chain validation still required):
+- QQQ ATM call, 2 DTE, close with underlying exit, premium cap $250.
+- QQQ ATM/+1% bull call spread, 2 DTE, premium cap $250.
+- TQQQ ATM call, 2 DTE, premium cap $100: research-only pending spreads/liquidity
+  and long-history validation.
+- Do not use 0DTE short premium as the first implementation; gamma/assignment risk
+  is not represented by the current Black-Scholes research layer.
+
+Operational registry: `intraday_strategy_registry.py`.
+Paper CLI: `intraday_strategy_runner.py list|check|log|status|close`.
