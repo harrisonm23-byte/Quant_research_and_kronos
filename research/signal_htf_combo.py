@@ -134,7 +134,9 @@ def load_daily(sym):
         df["ts"] = df["ts"].dt.tz_convert(NY)
     for c in ["open", "high", "low", "close", "volume"]:
         df[c] = pd.to_numeric(df[c], errors="coerce")
-    return df.dropna(subset=["close"]).sort_values("ts").tail(800).reset_index(drop=True)
+    # Keep the full daily file. Historical 5m validation may predate the most
+    # recent 800 sessions; truncating here silently turns every 1d/1w flag off.
+    return df.dropna(subset=["close"]).sort_values("ts").reset_index(drop=True)
 
 
 def htf_states(df, intraday=True):
