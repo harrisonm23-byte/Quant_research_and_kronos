@@ -8,9 +8,14 @@ LONG keepers (calls / long underlying proxy):
   L4  15m bb_dn + stretch035                   (~0.23/d, WR~64%, big MFE)
   L5  15m bb_dn + rsi30                        (~0.27/d, WR~62%)
 
-SHORT keepers (puts) — weaker; only WF survivors if any, else best candidates:
-  S1  15m bb_up + stretch_ok + rsi65           (phase-2 seed)
-  S2  5m  bb_up + tod_pm + rsi65
+SHORT keepers (puts) — weaker / provisional:
+  S1  15m bb_up + stretch_ok + rsi65
+  S2  15m bb_up + gap_up + stretch025
+  S3  5m  bb_up + prior_down + rsi65
+  S4  15m bb_up + narrow_bb
+
+Paper logging (multi-metric gate, not WR-only):
+  python3 signal_keepers_paper.py gate|check|log|status
 
 Usage:
   python3 signal_keepers.py           # backtest all keepers
