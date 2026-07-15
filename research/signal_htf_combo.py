@@ -95,7 +95,16 @@ def load_5m(sym, source_file=None):
                 raise ValueError(
                     f"{path}: need ts/datetime/timestamps or date+time columns"
                 )
-            ts = pd.to_datetime(df[ts_col])
+            raw_ts = df[ts_col].astype(str)
+            # Explicit UTC/offset timestamps can contain both -05:00 and
+            # -04:00 across DST. Parse those through UTC; keep genuinely
+            # naive timestamps in local exchange time.
+            has_explicit_tz = raw_ts.str.contains(
+                r"(?:Z|[+-]\d{2}:?\d{2})$", regex=True
+            ).any()
+            ts = pd.to_datetime(
+                raw_ts, format="mixed", utc=True if has_explicit_tz else False
+            )
             if ts.dt.tz is None:
                 df["ts"] = ts.dt.tz_localize(
                     NY, ambiguous="infer", nonexistent="shift_forward"
