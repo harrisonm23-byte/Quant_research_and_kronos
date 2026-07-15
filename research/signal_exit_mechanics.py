@@ -8,9 +8,11 @@ Properties deliberately different from the original event study:
   * every exit is forced before the session ends (no overnight leakage);
   * re-signal variants may extend the deadline, but never beyond 24 bars.
 
-Mean-reversion exits use a bar-close confirmation. Target exits use the bar
-high and fill at the target price; if a target and another exit happen in the
-same bar, the target takes precedence. All variants have a same-session cap.
+Mean-reversion exits use a bar-close confirmation and execute at the next
+bar's open (never retroactively at the observed close). Target exits use the
+bar high and fill at the target price; if a target and another exit happen in
+the same bar, the target takes precedence. All variants have a same-session
+cap.
 
 Usage:
   python3 signal_exit_mechanics.py --symbol SPY --tag recent
@@ -104,6 +106,7 @@ def run_strategy(df, signal, broad_resignal, mechanic):
         deadline = min(entry_i + initial_bars - 1, last_of_day[i])
         exit_i = deadline
         exit_raw = close[deadline]
+        path_last_i = deadline
         reason = "time" if deadline < last_of_day[i] else "eod"
         j = entry_i
 
@@ -117,11 +120,15 @@ def run_strategy(df, signal, broad_resignal, mechanic):
             if target_hit:
                 exit_i = j
                 exit_raw = entry * (1 + target)
+                path_last_i = j
                 reason = f"target_{int(target * 10000)}bp"
                 break
-            if close_hit:
-                exit_i = j
-                exit_raw = close[j]
+            # The crossing is only known after bar j closes. Execute at the
+            # next open, and only when j is before the time/session deadline.
+            if close_hit and j < deadline and j < last_of_day[i]:
+                exit_i = j + 1
+                exit_raw = o[j + 1]
+                path_last_i = j  # do not count post-entry-bar high/low
                 reason = f"{close_col}_close"
                 break
 
@@ -136,12 +143,16 @@ def run_strategy(df, signal, broad_resignal, mechanic):
         if j > deadline:
             exit_i = deadline
             exit_raw = close[deadline]
+            path_last_i = deadline
             if deadline == last_of_day[i]:
                 reason = "eod"
 
         exit_px = exit_raw * (1 - SLIP)
-        path_h = h[entry_i:exit_i + 1]
-        path_l = low[entry_i:exit_i + 1]
+        path_h = h[entry_i:path_last_i + 1]
+        path_l = low[entry_i:path_last_i + 1]
+        # A next-open exit can gap beyond the prior bar's range.
+        observed_high = max(path_h.max(), exit_raw)
+        observed_low = min(path_l.min(), exit_raw)
         trades.append({
             "signal_ts": df["ts"].iloc[i],
             "entry_ts": df["ts"].iloc[entry_i],
@@ -150,8 +161,8 @@ def run_strategy(df, signal, broad_resignal, mechanic):
             "entry": entry,
             "exit": exit_px,
             "ret": exit_px / entry - 1,
-            "mfe": path_h.max() / entry - 1,
-            "mae": path_l.min() / entry - 1,
+            "mfe": observed_high / entry - 1,
+            "mae": observed_low / entry - 1,
             "bars": exit_i - entry_i + 1,
             "exit_reason": reason,
             "mechanic": name,
