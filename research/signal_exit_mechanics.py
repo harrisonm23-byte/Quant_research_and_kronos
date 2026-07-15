@@ -70,6 +70,14 @@ def setup_masks(df):
                 raise KeyError(f"{label}: missing {flag}")
             mask &= df[flag].fillna(False)
         result[label] = mask.fillna(False)
+    # Matched cohorts: each mechanic receives exactly the first eligible
+    # signal of each session. This separates exit quality from the fact that
+    # longer-held strategies naturally skip more later signals.
+    for label in ("L1", "L2", "L3"):
+        first = pd.Series(False, index=df.index)
+        eligible = df.loc[result[label]].groupby("day", sort=False).head(1).index
+        first.loc[eligible] = True
+        result[f"{label}_first"] = first
     return result, recipes["L1_prior_up"].fillna(False)
 
 
