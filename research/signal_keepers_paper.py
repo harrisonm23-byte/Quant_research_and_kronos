@@ -9,12 +9,12 @@ Why not "anything over X% WR"?
 Default gate (override via flags):
   n >= 15, WR >= 60%, avg >= +0.05%, both WF halves WR>=50% or avg>=0
 
-Qualified by default under that gate: L1, L2, L3, L4, L5
-  (shorts usually fail avg/WR jointly — include with --include-shorts
-   only if they still pass the gate)
+Qualified by default under that gate: L1, L2, L3, L1v/L2v/L3v, L5
+  Nesting: L1 ⊂ L2/L3/L1v — paper log suppresses parents when a child fires
+  (so L1 does not steal L2/L3 trades). L2 and L3 are siblings (both may log).
 
 Usage:
-  python3 signal_keepers_paper.py gate          # show who qualifies
+  python3 signal_keepers_paper.py gate          # show who qualifies + nest stats
   python3 signal_keepers_paper.py check         # scan latest bars, print armed
   python3 signal_keepers_paper.py log           # append armed keepers to paper CSV
   python3 signal_keepers_paper.py status        # show open/recent paper rows
@@ -68,6 +68,131 @@ KEEPER_SPECS = [
     ("5m", "S3_5m_bbup_prior_down_rsi65", ["prior_down", "rsi65"], "bb_up"),
     ("15m", "S4_15m_bbup_narrow_bb", ["narrow_bb"], "bb_up"),
 ]
+
+# Nested families: child suppresses parent on the same bar.
+# L1 is the broad base; L2/L3/L1v/L1m are stricter; L2v/L3v are stricter still.
+# L2 and L3 are siblings (not nested) — both can log if both fire.
+NEST_CHILDREN = {
+    "L1_5m_bbdn_prior_up": [
+        "L2_5m_bbdn_prior_up_hvol",
+        "L3_5m_bbdn_prior_up_rsi35",
+        "L1v_5m_bbdn_prior_up_vix5up",
+        "L1m_5m_bbdn_prior_up_vix_ma10",
+    ],
+    "L2_5m_bbdn_prior_up_hvol": ["L2v_5m_bbdn_prior_up_hvol_vix5up"],
+    "L3_5m_bbdn_prior_up_rsi35": ["L3v_5m_bbdn_prior_up_rsi35_vix5up"],
+    "L1v_5m_bbdn_prior_up_vix5up": [
+        "L2v_5m_bbdn_prior_up_hvol_vix5up",
+        "L3v_5m_bbdn_prior_up_rsi35_vix5up",
+    ],
+    "S1_15m_bbup_vwap_rsi65": [
+        "S1v_15m_bbup_vwap_rsi65_vix5crush",
+        "S1d_15m_bbup_vwap_rsi65_vix_dn",
+    ],
+}
+
+# Priority within a nest (higher wins). Used when resolving same-bar conflicts.
+PRIORITY = {
+    "L3v_5m_bbdn_prior_up_rsi35_vix5up": 50,
+    "L2v_5m_bbdn_prior_up_hvol_vix5up": 45,
+    "L3_5m_bbdn_prior_up_rsi35": 40,
+    "L2_5m_bbdn_prior_up_hvol": 35,
+    "L1v_5m_bbdn_prior_up_vix5up": 30,
+    "L1m_5m_bbdn_prior_up_vix_ma10": 25,
+    "L1_5m_bbdn_prior_up": 10,
+    "S1v_15m_bbup_vwap_rsi65_vix5crush": 40,
+    "S1d_15m_bbup_vwap_rsi65_vix_dn": 35,
+    "S1_15m_bbup_vwap_rsi65": 10,
+}
+
+
+def suppress_nested(hits):
+    """Drop parent keepers when a child is also armed on the same ts/tf/side.
+
+    L1 is suppressed by L2/L3/L1v/L1m; L2 by L2v; L3 by L3v; S1 by S1v/S1d.
+    L2 and L3 are siblings — both may remain if both fire.
+    """
+    if not hits:
+        return hits
+    armed = {(h["tf"], h["side"], str(h["ts"]), h["keeper"]) for h in hits}
+    keep = []
+    suppressed = []
+    for h in hits:
+        children = NEST_CHILDREN.get(h["keeper"], [])
+        if any((h["tf"], h["side"], str(h["ts"]), c) in armed for c in children):
+            suppressed.append(h["keeper"])
+            continue
+        keep.append(h)
+
+    # Within S1* / L1v* sibling VIX variants on same bar, keep highest PRIORITY only
+    rival_groups = {
+        "S1_rival": {"S1v_15m_bbup_vwap_rsi65_vix5crush", "S1d_15m_bbup_vwap_rsi65_vix_dn"},
+        "Lv_rival": {"L2v_5m_bbdn_prior_up_hvol_vix5up", "L3v_5m_bbdn_prior_up_rsi35_vix5up"},
+    }
+    final = []
+    drop = set()
+    for h in keep:
+        for gname, rivals in rival_groups.items():
+            if h["keeper"] not in rivals:
+                continue
+            peers = [x for x in keep
+                     if x["keeper"] in rivals
+                     and x["tf"] == h["tf"] and x["side"] == h["side"]
+                     and str(x["ts"]) == str(h["ts"])]
+            best = max(peers, key=lambda x: PRIORITY.get(x["keeper"], 0))
+            if h["keeper"] != best["keeper"]:
+                drop.add(id(h))
+                suppressed.append(h["keeper"])
+    final = [h for h in keep if id(h) not in drop]
+    if suppressed:
+        print(f"  nest-suppress: {sorted(set(suppressed))} (child/higher-priority armed)")
+    return final
+
+
+def exclusive_stats(frames, min_n=8):
+    """Show L1-only vs L2/L3 nested performance (answers 'L1 steals the trade')."""
+    print("\n" + "=" * 88)
+    print("NEST EXCLUSIVITY — parent-only bars (child did NOT also fire)")
+    print("=" * 88)
+    df = frames["5m"]
+    specs = [
+        ("L1", "L1_5m_bbdn_prior_up", [
+            "L2_5m_bbdn_prior_up_hvol", "L3_5m_bbdn_prior_up_rsi35",
+            "L1v_5m_bbdn_prior_up_vix5up", "L1m_5m_bbdn_prior_up_vix_ma10"]),
+        ("L2", "L2_5m_bbdn_prior_up_hvol", ["L2v_5m_bbdn_prior_up_hvol_vix5up"]),
+        ("L3", "L3_5m_bbdn_prior_up_rsi35", ["L3v_5m_bbdn_prior_up_rsi35_vix5up"]),
+        ("L1v", "L1v_5m_bbdn_prior_up_vix5up", [
+            "L2v_5m_bbdn_prior_up_hvol_vix5up", "L3v_5m_bbdn_prior_up_rsi35_vix5up"]),
+    ]
+    for label, name, children in specs:
+        mask, side = sk.masks(df, name)
+        child_any = pd.Series(False, index=df.index)
+        for c in children:
+            try:
+                cm, _ = sk.masks(df, c)
+                child_any = child_any | cm.fillna(False)
+            except Exception:
+                pass
+        only = mask.fillna(False) & ~child_any
+        _, r_all = s.backtest(df, mask, side, label=f"{label}|all", hold=HOLD)
+        _, r_only = s.backtest(df, only, side, label=f"{label}|exclusive", hold=HOLD)
+        wr = f"{r_all['wr']:.0%}" if r_all["n"] else "n/a"
+        avg = f"{r_all['avg']:+.3%}" if r_all["n"] else "n/a"
+        print(f"  {label:<4} all:        n={r_all['n']:>3} WR={wr} avg={avg}")
+        if r_only["n"]:
+            print(f"  {label:<4} exclusive: n={r_only['n']:>3} WR={r_only['wr']:.0%} "
+                  f"avg={r_only['avg']:+.3%}  (no child fired)")
+        else:
+            print(f"  {label:<4} exclusive: n=0")
+    m2, _ = sk.masks(df, "L2_5m_bbdn_prior_up_hvol")
+    m3, _ = sk.masks(df, "L3_5m_bbdn_prior_up_rsi35")
+    both = m2.fillna(False) & m3.fillna(False)
+    _, rb = s.backtest(df, both, "long", label="L2∩L3", hold=HOLD)
+    if rb["n"]:
+        print(f"  L2∩L3 overlap: n={rb['n']:>3} WR={rb['wr']:.0%} avg={rb['avg']:+.3%}")
+    else:
+        print("  L2∩L3 overlap: n=0")
+    print("  Paper rule: log most-specific child; suppress parent. L2∥L3 allowed.")
 
 
 def load_frames():
@@ -178,11 +303,12 @@ def cmd_gate(args):
     print(f"Wrote {path}")
     print("\nNote: L3 qualifies on WR+avg+WF — yes, log it. "
           "Do not auto-log every high-WR combo from the raw scan.")
+    exclusive_stats(frames)
     return out
 
 
-def armed_now(frames, keepers):
-    """Return list of (keeper, side, tf, ts, close, stretch, rsi) currently firing."""
+def armed_now(frames, keepers, dedup_nest=True):
+    """Return armed keepers; by default suppress parents when children also fire."""
     hits = []
     for tf, name, parts, base in KEEPER_SPECS:
         if name not in keepers:
@@ -200,6 +326,8 @@ def armed_now(frames, keepers):
             prior_up=bool(r.get("prior_up", False)),
             high_vol=bool(r.get("high_vol", False)),
         ))
+    if dedup_nest:
+        hits = suppress_nested(hits)
     return hits
 
 
@@ -214,16 +342,15 @@ def load_log():
 
 def cmd_check(args):
     gate = cmd_gate(args)
-    frames = load_frames()  # already loaded inside gate but reload cheap
-    # reuse frames
     frames = load_frames()
     trade = set(gate.loc[gate["tier"] == "trade", "keeper"])
     watch = set(gate.loc[gate["tier"] == "watch", "keeper"])
     active = trade | (watch if args.log_watch else set())
     print("\n" + "=" * 88)
-    print("ARMED NOW (qualified keepers only)")
+    print("ARMED NOW (qualified keepers, nest-deduped)" if not args.no_nest_dedup
+          else "ARMED NOW (qualified keepers, raw — no nest dedup)")
     print("=" * 88)
-    hits = armed_now(frames, active)
+    hits = armed_now(frames, active, dedup_nest=not args.no_nest_dedup)
     if not hits:
         print("  (none)")
     for h in hits:
@@ -314,6 +441,8 @@ def main():
                     help="Allow shorts into TRADE tier if they pass the gate")
     ap.add_argument("--log-watch", action="store_true",
                     help="Also log WATCH-tier armed signals")
+    ap.add_argument("--no-nest-dedup", action="store_true",
+                    help="Log all overlapping parents/children (not recommended)")
     ap.add_argument("--id", type=int, help="paper row id for close")
     ap.add_argument("--exit-ret", type=float, default=0.0)
     ap.add_argument("--notes", default="")
