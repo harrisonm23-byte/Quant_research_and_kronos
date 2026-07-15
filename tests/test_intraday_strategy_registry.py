@@ -67,3 +67,16 @@ def test_option_overlay_prices_are_positive_and_spread_is_capped():
     assert 0 < spread_price < call_price
     assert spread_price < 500 * spread.width
 
+
+def test_option_strikes_stay_fixed_after_entry():
+    call = registry.OVERLAYS["QQQ_ATM_CALL_2DTE"]
+    strikes = options.overlay_strikes(call, entry_spot=500)
+    entry = options.price_overlay(
+        call, spot=500, years=2 / 252, iv=0.25, strikes=strikes
+    )
+    exit_value = options.price_overlay(
+        call, spot=505, years=1.5 / 252, iv=0.25, strikes=strikes
+    )
+    assert strikes[0] == 500
+    assert exit_value > entry
+

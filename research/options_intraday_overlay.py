@@ -65,13 +65,21 @@ def iv_at_exit(iv0, underlying_ret):
     return iv0 * min(1.4, max(0.6, 1 - 3 * underlying_ret))
 
 
-def price_overlay(overlay, spot, years, iv):
-    k1 = spot * (1 + overlay.moneyness)
+def overlay_strikes(overlay, entry_spot):
+    k1 = entry_spot * (1 + overlay.moneyness)
+    k2 = (
+        entry_spot * (1 + overlay.moneyness + overlay.width)
+        if overlay.width is not None else None
+    )
+    return k1, k2
+
+
+def price_overlay(overlay, spot, years, iv, strikes=None):
+    k1, k2 = strikes or overlay_strikes(overlay, spot)
     long_call = bs_call(spot, k1, years, iv)
     if overlay.structure == "long_call":
         return long_call
     if overlay.structure == "bull_call_spread":
-        k2 = spot * (1 + overlay.moneyness + overlay.width)
         return max(long_call - bs_call(spot, k2, years, iv), 0.0)
     raise ValueError(overlay.structure)
 
@@ -93,8 +101,13 @@ def simulate(panel, trades, overlay, iv_mult):
         t0 = overlay.dte / 252
         tx = max(overlay.dte - elapsed_days, 0.02) / 252
         ive = iv_at_exit(iv0, sx / s0 - 1)
-        p0 = price_overlay(overlay, s0, t0, iv0) * (1 + COST / 2)
-        px = price_overlay(overlay, sx, tx, ive) * (1 - COST / 2)
+        strikes = overlay_strikes(overlay, s0)
+        p0 = price_overlay(
+            overlay, s0, t0, iv0, strikes=strikes
+        ) * (1 + COST / 2)
+        px = price_overlay(
+            overlay, sx, tx, ive, strikes=strikes
+        ) * (1 - COST / 2)
         if p0 < 0.05:
             continue
         pnls.append(px / p0 - 1)
