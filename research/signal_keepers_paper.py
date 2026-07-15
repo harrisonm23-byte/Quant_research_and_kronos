@@ -78,9 +78,17 @@ NEST_CHILDREN = {
         "L3_5m_bbdn_prior_up_rsi35",
         "L1v_5m_bbdn_prior_up_vix5up",
         "L1m_5m_bbdn_prior_up_vix_ma10",
+        "L1h_5m_prior_up_1h_below_sma9",
     ],
-    "L2_5m_bbdn_prior_up_hvol": ["L2v_5m_bbdn_prior_up_hvol_vix5up"],
-    "L3_5m_bbdn_prior_up_rsi35": ["L3v_5m_bbdn_prior_up_rsi35_vix5up"],
+    "L2_5m_bbdn_prior_up_hvol": [
+        "L2v_5m_bbdn_prior_up_hvol_vix5up",
+        "L2h_5m_hvol_15m_candle_dn",
+    ],
+    "L3_5m_bbdn_prior_up_rsi35": [
+        "L3v_5m_bbdn_prior_up_rsi35_vix5up",
+        "L3h_5m_rsi35_15m_candle_dn",
+        "L3a_5m_rsi35_1h_above_sma9",
+    ],
     "L1v_5m_bbdn_prior_up_vix5up": [
         "L2v_5m_bbdn_prior_up_hvol_vix5up",
         "L3v_5m_bbdn_prior_up_rsi35_vix5up",
