@@ -10,6 +10,12 @@ Usage:
   python3 signal_htf_regime_validation.py \
     --symbol SPY --source-file /path/to/SPY_5_min.csv \
     --tag historical_2019_2021
+
+Historical dataset used for the checked-in report:
+  https://www.kaggle.com/datasets/abidou/spy-intraday-ohlc
+  File: SPY_5_min.csv, 2019-12-30 through 2021-10-28.
+The publisher does not declare a license in Kaggle's API metadata, so the raw
+bars are intentionally not redistributed in this repository.
 """
 from __future__ import annotations
 
