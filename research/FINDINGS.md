@@ -165,5 +165,19 @@ Options overlays (modeled/paper only; real-chain validation still required):
 - Do not use 0DTE short premium as the first implementation; gamma/assignment risk
   is not represented by the current Black-Scholes research layer.
 
+Modeled overlay snapshot at IV=1.25x intraday RV (premium-return stats):
+```
+Signal/exit             QQQ historical ATM call       QQQ historical call spread
+L1 120m                 62.1% WR, +13.4% avg          65.5% WR, +12.3% avg
+L2 120m                 63.0% WR, +16.3% avg          68.5% WR, +14.5% avg
+L3 120m                 61.8% WR, +20.9% avg          70.6% WR, +18.1% avg
+L1 EOD                  65.5% WR, +33.2% avg          69.0% WR, +31.8% avg
+L2 EOD                  63.0% WR, +35.5% avg          70.4% WR, +32.9% avg
+L3 EOD                  64.7% WR, +47.3% avg          76.5% WR, +43.1% avg
+```
+The spread generally improves WR/downside while capping upside. This is BS+RV proxy
+output, not executable expectancy: no bid/ask chain, skew, or fill-quality history.
+Forward paper must record quoted bid/ask and actual mid/marketable fills.
+
 Operational registry: `intraday_strategy_registry.py`.
 Paper CLI: `intraday_strategy_runner.py list|check|log|status|close`.
