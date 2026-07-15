@@ -8,6 +8,7 @@ sys.path.insert(0, str(RESEARCH))
 
 import intraday_strategy_registry as registry
 import intraday_strategy_runner as runner
+import options_intraday_overlay as options
 
 
 def test_registry_has_two_virtual_exits_per_symbol_setup():
@@ -55,4 +56,14 @@ def test_watch_strategies_require_explicit_inclusion():
     expanded = runner.expand_strategies([hit], include_watch=True)
     assert len(expanded) == 2
     assert {x["exit_mechanic"] for x in expanded} == {"fixed_24", "fixed_eod"}
+
+
+def test_option_overlay_prices_are_positive_and_spread_is_capped():
+    call = registry.OVERLAYS["QQQ_ATM_CALL_2DTE"]
+    spread = registry.OVERLAYS["QQQ_CALL_SPREAD_1PCT_2DTE"]
+    call_price = options.price_overlay(call, spot=500, years=2 / 252, iv=0.25)
+    spread_price = options.price_overlay(spread, spot=500, years=2 / 252, iv=0.25)
+    assert call_price > 0
+    assert 0 < spread_price < call_price
+    assert spread_price < 500 * spread.width
 
