@@ -179,5 +179,14 @@ The spread generally improves WR/downside while capping upside. This is BS+RV pr
 output, not executable expectancy: no bid/ask chain, skew, or fill-quality history.
 Forward paper must record quoted bid/ask and actual mid/marketable fills.
 
+VIX-conditioned option buying (`signal_vix_options_entry.py`, SPY 2019-21, modeled
+2-DTE ATM calls, IV proportional to prior-close VIX): "buy calls when VIX is low"
+FAILS on these signals. Low-VIX buckets (<15 or bottom percentile) are flat-to-negative
+(13-15 bucket: opt WR 22%, avg -6 to -9%) — cheap premium is offset by smaller realized
+bounces. The option edge concentrates at HIGH VIX (>=30 / top quintile): underlying
+avg +0.95-1.15% EOD, modeled call avg +20-29% per trade. The panic-fade already in
+L1v/L2v/L3v (VIX-rising variants) is where long options pay; low-VIX days favor the
+underlying or spreads, not outright calls.
+
 Operational registry: `intraday_strategy_registry.py`.
 Paper CLI: `intraday_strategy_runner.py list|check|log|status|close`.
