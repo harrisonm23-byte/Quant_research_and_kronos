@@ -44,26 +44,63 @@ def masks(df, name):
     first_dn = base_dn & ~base_dn.shift(1).fillna(False)
     first_up = base_up & ~base_up.shift(1).fillna(False)
     f = df
+
+    def col(c):
+        return f[c].fillna(False) if c in f.columns else pd.Series(False, index=f.index)
+
     table = {
-        "L1_5m_bbdn_prior_up": (first_dn & f["prior_up"].fillna(False), "long"),
+        "L1_5m_bbdn_prior_up": (first_dn & col("prior_up"), "long"),
         "L2_5m_bbdn_prior_up_hvol": (
-            first_dn & f["prior_up"].fillna(False) & f["high_vol"].fillna(False), "long"),
+            first_dn & col("prior_up") & col("high_vol"), "long"),
         "L3_5m_bbdn_prior_up_rsi35": (
-            first_dn & f["prior_up"].fillna(False) & f["rsi35"].fillna(False), "long"),
+            first_dn & col("prior_up") & col("rsi35"), "long"),
         "L4_15m_bbdn_stretch035": (
-            first_dn & f["stretch035"].fillna(False), "long"),
+            first_dn & col("stretch035"), "long"),
         "L5_15m_bbdn_rsi30": (
-            first_dn & f["rsi30"].fillna(False), "long"),
+            first_dn & col("rsi30"), "long"),
+        # VIX-enhanced longs (from signal_vix_study)
+        "L1v_5m_bbdn_prior_up_vix5up": (
+            first_dn & col("prior_up") & col("vix5_rising"), "long"),
+        "L2v_5m_bbdn_prior_up_hvol_vix5up": (
+            first_dn & col("prior_up") & col("high_vol") & col("vix5_rising"), "long"),
+        "L3v_5m_bbdn_prior_up_rsi35_vix5up": (
+            first_dn & col("prior_up") & col("rsi35") & col("vix5_rising"), "long"),
+        "L1m_5m_bbdn_prior_up_vix_ma10": (
+            first_dn & col("prior_up") & col("vix_above_ma10"), "long"),
         "S1_15m_bbup_vwap_rsi65": (
-            first_up & f["stretch_ok_short"].fillna(False) & f["rsi65"].fillna(False), "short"),
+            first_up & col("stretch_ok_short") & col("rsi65"), "short"),
         "S2_15m_bbup_gap_up_stretch025": (
-            first_up & f["gap_up"].fillna(False) & f["stretch025"].fillna(False), "short"),
+            first_up & col("gap_up") & col("stretch025"), "short"),
         "S3_5m_bbup_prior_down_rsi65": (
-            first_up & f["prior_down"].fillna(False) & f["rsi65"].fillna(False), "short"),
+            first_up & col("prior_down") & col("rsi65"), "short"),
         "S4_15m_bbup_narrow_bb": (
-            first_up & f["narrow_bb"].fillna(False), "short"),
+            first_up & col("narrow_bb"), "short"),
+        # VIX-enhanced shorts
+        "S1v_15m_bbup_vwap_rsi65_vix5crush": (
+            first_up & col("stretch_ok_short") & col("rsi65") & col("vix5_crush"), "short"),
+        "S1d_15m_bbup_vwap_rsi65_vix_dn": (
+            first_up & col("stretch_ok_short") & col("rsi65") & col("vix_dn_day"), "short"),
     }
     return table[name]
+
+
+PARTS = {
+    "L1_5m_bbdn_prior_up": ["prior_up"],
+    "L2_5m_bbdn_prior_up_hvol": ["prior_up", "high_vol"],
+    "L3_5m_bbdn_prior_up_rsi35": ["prior_up", "rsi35"],
+    "L4_15m_bbdn_stretch035": ["stretch035"],
+    "L5_15m_bbdn_rsi30": ["rsi30"],
+    "L1v_5m_bbdn_prior_up_vix5up": ["prior_up", "vix5_rising"],
+    "L2v_5m_bbdn_prior_up_hvol_vix5up": ["prior_up", "high_vol", "vix5_rising"],
+    "L3v_5m_bbdn_prior_up_rsi35_vix5up": ["prior_up", "rsi35", "vix5_rising"],
+    "L1m_5m_bbdn_prior_up_vix_ma10": ["prior_up", "vix_above_ma10"],
+    "S1_15m_bbup_vwap_rsi65": ["stretch_ok_short", "rsi65"],
+    "S2_15m_bbup_gap_up_stretch025": ["gap_up", "stretch025"],
+    "S3_5m_bbup_prior_down_rsi65": ["prior_down", "rsi65"],
+    "S4_15m_bbup_narrow_bb": ["narrow_bb"],
+    "S1v_15m_bbup_vwap_rsi65_vix5crush": ["stretch_ok_short", "rsi65", "vix5_crush"],
+    "S1d_15m_bbup_vwap_rsi65_vix_dn": ["stretch_ok_short", "rsi65", "vix_dn_day"],
+}
 
 
 def run_all(frames):
@@ -71,9 +108,15 @@ def run_all(frames):
         ("5m", "L1_5m_bbdn_prior_up"),
         ("5m", "L2_5m_bbdn_prior_up_hvol"),
         ("5m", "L3_5m_bbdn_prior_up_rsi35"),
+        ("5m", "L1v_5m_bbdn_prior_up_vix5up"),
+        ("5m", "L2v_5m_bbdn_prior_up_hvol_vix5up"),
+        ("5m", "L3v_5m_bbdn_prior_up_rsi35_vix5up"),
+        ("5m", "L1m_5m_bbdn_prior_up_vix_ma10"),
         ("15m", "L4_15m_bbdn_stretch035"),
         ("15m", "L5_15m_bbdn_rsi30"),
         ("15m", "S1_15m_bbup_vwap_rsi65"),
+        ("15m", "S1v_15m_bbup_vwap_rsi65_vix5crush"),
+        ("15m", "S1d_15m_bbup_vwap_rsi65_vix_dn"),
         ("15m", "S2_15m_bbup_gap_up_stretch025"),
         ("5m", "S3_5m_bbup_prior_down_rsi65"),
         ("15m", "S4_15m_bbup_narrow_bb"),
@@ -92,22 +135,14 @@ def run_all(frames):
         print("  time:", s.fmt_row(r_t).strip())
         extra = f"  tgt_hit={r_g['tgt_rate']:.0%}" if r_g["n"] else ""
         print("  tgt :", s.fmt_row(r_g).strip() + extra)
-        # walk-forward
-        parts = {
-            "L1_5m_bbdn_prior_up": ["prior_up"],
-            "L2_5m_bbdn_prior_up_hvol": ["prior_up", "high_vol"],
-            "L3_5m_bbdn_prior_up_rsi35": ["prior_up", "rsi35"],
-            "L4_15m_bbdn_stretch035": ["stretch035"],
-            "L5_15m_bbdn_rsi30": ["rsi30"],
-            "S1_15m_bbup_vwap_rsi65": ["stretch_ok_short", "rsi65"],
-            "S2_15m_bbup_gap_up_stretch025": ["gap_up", "stretch025"],
-            "S3_5m_bbup_prior_down_rsi65": ["prior_down", "rsi65"],
-            "S4_15m_bbup_narrow_bb": ["narrow_bb"],
-        }[name]
+        parts = PARTS[name]
+        # walk-forward only on non-VIX columns that exist in enrich(); VIX cols need presence
+        wf_parts = [p for p in parts if p in df.columns]
         base = "bb_dn" if side == "long" else "bb_up"
-        wf = p3.walkforward_check(df, base, parts, side)
-        print(f"  WF  : H1 n={wf['H1']['n']} WR={wf['H1']['wr']:.0%} avg={wf['H1']['avg']:+.3%} | "
-              f"H2 n={wf['H2']['n']} WR={wf['H2']['wr']:.0%} avg={wf['H2']['avg']:+.3%}")
+        if wf_parts:
+            wf = p3.walkforward_check(df, base, wf_parts, side)
+            print(f"  WF  : H1 n={wf['H1']['n']} WR={wf['H1']['wr']:.0%} avg={wf['H1']['avg']:+.3%} | "
+                  f"H2 n={wf['H2']['n']} WR={wf['H2']['wr']:.0%} avg={wf['H2']['avg']:+.3%}")
         rows.append({**r_t, "keeper": name, "side": side, "tf": tf, "exit": "time"})
         rows.append({**r_g, "keeper": name, "side": side, "tf": tf, "exit": "tgt15"})
         if len(tr_t):
@@ -163,11 +198,15 @@ def scan(frames):
         print("  armed now:")
         names_5m = [
             "L1_5m_bbdn_prior_up", "L2_5m_bbdn_prior_up_hvol", "L3_5m_bbdn_prior_up_rsi35",
+            "L1v_5m_bbdn_prior_up_vix5up", "L2v_5m_bbdn_prior_up_hvol_vix5up",
+            "L3v_5m_bbdn_prior_up_rsi35_vix5up", "L1m_5m_bbdn_prior_up_vix_ma10",
             "S3_5m_bbup_prior_down_rsi65",
         ]
         names_15m = [
             "L4_15m_bbdn_stretch035", "L5_15m_bbdn_rsi30",
-            "S1_15m_bbup_vwap_rsi65", "S2_15m_bbup_gap_up_stretch025", "S4_15m_bbup_narrow_bb",
+            "S1_15m_bbup_vwap_rsi65", "S1v_15m_bbup_vwap_rsi65_vix5crush",
+            "S1d_15m_bbup_vwap_rsi65_vix_dn",
+            "S2_15m_bbup_gap_up_stretch025", "S4_15m_bbup_narrow_bb",
         ]
         for name in (names_5m if tf == "5m" else names_15m):
             mask, side = masks(df, name)
@@ -184,6 +223,17 @@ def main():
     frames = s.build_frames(df5, daily)
     for tf in ["5m", "15m", "30m", "1h"]:
         frames[tf] = p3.enrich(frames[tf])
+    try:
+        import signal_vix_study as vx
+        vix_d = vx.prep_vix_daily(vx.fetch_vix_daily())
+        try:
+            vix_5m = vx.prep_vix_5m(vx.fetch_vix_5m())
+        except Exception:
+            vix_5m = None
+        for tf in ["5m", "15m"]:
+            frames[tf] = vx.align_vix(frames[tf], vix_d, vix_5m)
+    except Exception as e:
+        print(f"VIX attach skipped: {e}")
     run_all(frames)
     if args.scan:
         scan(frames)

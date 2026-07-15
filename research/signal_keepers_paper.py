@@ -55,9 +55,15 @@ KEEPER_SPECS = [
     ("5m", "L1_5m_bbdn_prior_up", ["prior_up"], "bb_dn"),
     ("5m", "L2_5m_bbdn_prior_up_hvol", ["prior_up", "high_vol"], "bb_dn"),
     ("5m", "L3_5m_bbdn_prior_up_rsi35", ["prior_up", "rsi35"], "bb_dn"),
+    ("5m", "L1v_5m_bbdn_prior_up_vix5up", ["prior_up", "vix5_rising"], "bb_dn"),
+    ("5m", "L2v_5m_bbdn_prior_up_hvol_vix5up", ["prior_up", "high_vol", "vix5_rising"], "bb_dn"),
+    ("5m", "L3v_5m_bbdn_prior_up_rsi35_vix5up", ["prior_up", "rsi35", "vix5_rising"], "bb_dn"),
+    ("5m", "L1m_5m_bbdn_prior_up_vix_ma10", ["prior_up", "vix_above_ma10"], "bb_dn"),
     ("15m", "L4_15m_bbdn_stretch035", ["stretch035"], "bb_dn"),
     ("15m", "L5_15m_bbdn_rsi30", ["rsi30"], "bb_dn"),
     ("15m", "S1_15m_bbup_vwap_rsi65", ["stretch_ok_short", "rsi65"], "bb_up"),
+    ("15m", "S1v_15m_bbup_vwap_rsi65_vix5crush", ["stretch_ok_short", "rsi65", "vix5_crush"], "bb_up"),
+    ("15m", "S1d_15m_bbup_vwap_rsi65_vix_dn", ["stretch_ok_short", "rsi65", "vix_dn_day"], "bb_up"),
     ("15m", "S2_15m_bbup_gap_up_stretch025", ["gap_up", "stretch025"], "bb_up"),
     ("5m", "S3_5m_bbup_prior_down_rsi65", ["prior_down", "rsi65"], "bb_up"),
     ("15m", "S4_15m_bbup_narrow_bb", ["narrow_bb"], "bb_up"),
@@ -70,6 +76,18 @@ def load_frames():
     frames = s.build_frames(df5, daily)
     for tf in ["5m", "15m", "30m", "1h"]:
         frames[tf] = p3.enrich(frames[tf])
+    # attach VIX (daily + 5m) when available
+    try:
+        import signal_vix_study as vx
+        vix_d = vx.prep_vix_daily(vx.fetch_vix_daily())
+        try:
+            vix_5m = vx.prep_vix_5m(vx.fetch_vix_5m())
+        except Exception:
+            vix_5m = None
+        for tf in ["5m", "15m"]:
+            frames[tf] = vx.align_vix(frames[tf], vix_d, vix_5m)
+    except Exception as e:
+        print(f"VIX attach skipped: {e}")
     return frames
 
 
