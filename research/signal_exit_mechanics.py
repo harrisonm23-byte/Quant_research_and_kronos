@@ -44,7 +44,11 @@ SETUPS = [
 MECHANICS = [
     # name, maximum bars, close condition, target, re-signal extension
     ("fixed_5", 5, None, None, False),
+    ("fixed_8", 8, None, None, False),
     ("fixed_12", 12, None, None, False),
+    ("fixed_18", 18, None, None, False),
+    ("fixed_24", 24, None, None, False),
+    ("fixed_eod", 999, None, None, False),
     ("sma9_close_max12", 12, "sma9", None, False),
     ("bbmid_close_max12", 12, "bb_mid", None, False),
     ("vwap_close_max12", 12, "vwap", None, False),
