@@ -50,9 +50,17 @@ HTF_RULES = {
 }
 
 
-def load_5m(sym):
-    path = os.path.join(OUT, f"{sym}_5m_yf.csv")
+def load_5m(sym, source_file=None):
+    """Load canonical Yahoo cache or an explicit external 5m CSV.
+
+    External files may use either a timestamp column (ts/datetime/timestamps)
+    or separate date/time columns.  Keeping this opt-in avoids replacing the
+    current paper feed with a stale historical validation dataset.
+    """
+    path = source_file or os.path.join(OUT, f"{sym}_5m_yf.csv")
     if not os.path.exists(path):
+        if source_file:
+            raise FileNotFoundError(source_file)
         import yfinance as yf
         raw = yf.download(sym, interval="5m", period="60d",
                           auto_adjust=True, progress=False).reset_index()
@@ -69,7 +77,34 @@ def load_5m(sym):
         df.to_csv(path, index=False)
     else:
         df = pd.read_csv(path)
-        df["ts"] = pd.to_datetime(df["ts"], utc=True).dt.tz_convert(NY)
+        cols = {str(c).lower(): c for c in df.columns}
+        if "date" in cols and "time" in cols:
+            # Public/Kaggle-style RTH files use local exchange date + time.
+            ts = pd.to_datetime(
+                df[cols["date"]].astype(str) + " " + df[cols["time"]].astype(str)
+            )
+            df["ts"] = ts.dt.tz_localize(
+                NY, ambiguous="infer", nonexistent="shift_forward"
+            )
+        else:
+            ts_col = next(
+                (cols[c] for c in ("ts", "datetime", "timestamps") if c in cols),
+                None,
+            )
+            if ts_col is None:
+                raise ValueError(
+                    f"{path}: need ts/datetime/timestamps or date+time columns"
+                )
+            ts = pd.to_datetime(df[ts_col])
+            if ts.dt.tz is None:
+                df["ts"] = ts.dt.tz_localize(
+                    NY, ambiguous="infer", nonexistent="shift_forward"
+                )
+            else:
+                df["ts"] = ts.dt.tz_convert(NY)
+        df.columns = [str(c).lower() for c in df.columns]
+        for c in ["open", "high", "low", "close", "volume"]:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
     keep = (df["ts"].dt.time >= dtime(9, 30)) & (df["ts"].dt.time <= dtime(15, 55))
     return df.loc[keep].sort_values("ts").reset_index(drop=True)
 
@@ -147,9 +182,9 @@ def align_states(base_5m, htf_df, prefix):
     return out
 
 
-def build_panel(sym):
+def build_panel(sym, source_file=None):
     print(f"Building panel {sym}…")
-    df5 = load_5m(sym)
+    df5 = load_5m(sym, source_file=source_file)
     daily = load_daily(sym)
     base = p3.enrich(s.prep(df5, intraday=True))
 
@@ -214,8 +249,9 @@ def score(r):
     return r["avg"] * np.sqrt(r["n"]) * (0.5 + r["wr"])
 
 
-def scan_symbol(sym, max_k=3, min_n=12, min_wr=0.60, min_avg=0.0005, seeds_per_tf=4):
-    df = build_panel(sym)
+def scan_symbol(sym, max_k=3, min_n=12, min_wr=0.60, min_avg=0.0005,
+                seeds_per_tf=4, source_file=None, output_tag=None):
+    df = build_panel(sym, source_file=source_file)
     flags = list_htf_flags(df)
     print(f"  {len(flags)} HTF flags")
     recipes = base_recipes(df)
@@ -305,7 +341,8 @@ def scan_symbol(sym, max_k=3, min_n=12, min_wr=0.60, min_avg=0.0005, seeds_per_t
             print(f"  k={k}: tested {combos_tested} combos")
 
     out = pd.DataFrame(rows)
-    path = os.path.join(OUT, f"signal_htf_combo_{sym}.csv")
+    suffix = f"_{output_tag}" if output_tag else ""
+    path = os.path.join(OUT, f"signal_htf_combo_{sym}{suffix}.csv")
     out.to_csv(path, index=False)
     print(f"\nWrote {path}")
 
@@ -328,7 +365,10 @@ def scan_symbol(sym, max_k=3, min_n=12, min_wr=0.60, min_avg=0.0005, seeds_per_t
     else:
         for _, r in surv.head(25).iterrows():
             print(fmt(r) + f"  Δ={r['delta_avg']:+.3%} k={r['k']}")
-        surv.to_csv(os.path.join(OUT, f"signal_htf_survivors_{sym}.csv"), index=False)
+        surv.to_csv(
+            os.path.join(OUT, f"signal_htf_survivors_{sym}{suffix}.csv"),
+            index=False,
+        )
     return out, surv
 
 
@@ -340,23 +380,36 @@ def main():
     ap.add_argument("--min-n", type=int, default=12)
     ap.add_argument("--min-wr", type=float, default=0.60)
     ap.add_argument("--min-avg", type=float, default=0.0005)
+    ap.add_argument(
+        "--source-file",
+        help="Explicit 5m CSV for one symbol (timestamp or date+time schema)",
+    )
+    ap.add_argument(
+        "--output-tag",
+        help="Suffix output CSVs, e.g. historical_2019_2021",
+    )
     args = ap.parse_args()
+    symbols = [x.strip().upper() for x in args.symbol.split(",")]
+    if args.source_file and len(symbols) != 1:
+        ap.error("--source-file requires exactly one --symbol")
 
     print("NOTE: This is a compute/CSV job — a larger chat context window is NOT required.")
     print(f"max_k={args.max_k}  gate n>={args.min_n} WR>={args.min_wr:.0%} avg>={args.min_avg:.3%}")
 
     all_surv = []
-    for sym in [x.strip().upper() for x in args.symbol.split(",")]:
+    for sym in symbols:
         _, surv = scan_symbol(
             sym, max_k=args.max_k, min_n=args.min_n,
             min_wr=args.min_wr, min_avg=args.min_avg,
+            source_file=args.source_file, output_tag=args.output_tag,
         )
         if len(surv):
             all_surv.append(surv)
 
     if all_surv:
         big = pd.concat(all_surv, ignore_index=True).sort_values("score", ascending=False)
-        path = os.path.join(OUT, "signal_htf_survivors_all.csv")
+        suffix = f"_{args.output_tag}" if args.output_tag else ""
+        path = os.path.join(OUT, f"signal_htf_survivors_all{suffix}.csv")
         big.to_csv(path, index=False)
         print("\n" + "=" * 88)
         print("GLOBAL TOP HTF COMBOS")
