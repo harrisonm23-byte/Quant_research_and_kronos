@@ -52,6 +52,14 @@ Time-split: GREEN 2017-21 = 75-78% WR (passes); 2022-26 = 61-63% (real but decay
   intraday-only shorts fight it.
 - Friday IBS signals: +11-12pts WR, both symbols, both halves (stable adder)
 - SKEW 5d-rise: +3-5pts, both symbols, 3 independent appearances (weak stable adder)
+- Conditional-open 2x2 (2026-07-15, both symbols, halves stable): prev-DOWN + gap-DOWN
+  is the ONLY quadrant with intraday edge (57%/56% O->C up, +0.07/+0.10%). Prev-UP +
+  gap-DOWN = NO edge (dip only buyable after prior weakness — context law again).
+  Gap-fill ladder (P touch prev close): -0.2..0% gap = 88-89%; -0.5..-0.2% = 69-80%;
+  -1..-0.5% = 36-47%; <-1% = 23-26% (big gaps: biggest O->C bounce +0.17/+0.36% but
+  green close only 11-19%). Day shape on down-down: LOW early (45% first hour, med
+  ~90min), HIGH late (med 2-3.5h, 28-34% last hour) -> buy first-hour weakness,
+  sell afternoon strength.
 - Tight stops (0.15-0.25%) destroy sub-10bp edges. Mean reversion wants immediacy
   (buy the open), not confirmation.
 - Bollinger-band WIDTH is a MAGNITUDE dial, not a direction (2026-07-10 discovery mode,
