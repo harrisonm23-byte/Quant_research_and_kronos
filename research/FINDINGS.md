@@ -118,6 +118,18 @@ Time-split: GREEN 2017-21 = 75-78% WR (passes); 2022-26 = 61-63% (real but decay
   1m reversal: n=254, faint long whisper (55% race, +1.4bp) < costs. NOT TESTED:
   track 2 (small-cap premarket gappers, the guide's native habitat) — requires
   dynamic gapper universe build; verdict explicitly does NOT extend there.
+  TRACK 2 COMPLETED (2026-07-16): 5,384 gapper events (gap>=7%, $1.5-20, >=$5M traded,
+  top-8/day, 2023-07->2026-07, 1m bars incl premarket, 30bps costs, next-bar-open).
+  72,343 signals. Even in native habitat, mechanical patterns LOSE: failed-flat-top
+  short -0.52%/tr (n=30k); rev5 5m both sides -0.3 to -0.8%; rev10 1m short -1.26%
+  (never short gapper strength); flat-top long mean 0.0% but MEDIAN -0.48% (lottery
+  structure: most fade, rare monsters carry the mean; medMFE 3.3%). ONE whisper:
+  gap-and-go PMH break on MODERATE gappers (7-12%): +1.43%/tr n=504 — but year-
+  unstable (+0.6/-0.0/+0.7/-1.6) and extreme gappers (>25%) FADE the break (-0.61%).
+  CAVEATS: survivorship FLATTERS longs (still lose -> damning); 30bps generous for
+  $3 stocks; halts/borrow unmodeled (shorts worse in practice). CONCLUSION: the
+  guide's edge, if real, lives in discretionary selection + loss-cutting, not the
+  mechanical entries. Chapter closed; nothing deploys.
 - VWAP-rollover fade (EMA9 up->down turn while extended above a still-rising VWAP,
   target VWAP tag, 0.25% stop): structure REAL (morning rollovers tag VWAP 60-66%,
   both symbols) but ALL 24 cells net-negative — win capped at distance-to-VWAP (~0.12%)
