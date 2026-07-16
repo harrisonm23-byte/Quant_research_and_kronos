@@ -99,6 +99,17 @@ Time-split: GREEN 2017-21 = 75-78% WR (passes); 2022-26 = 61-63% (real but decay
 - CBOE SKEW level for next-day timing (no pattern)
 - Waiting for VWAP-reclaim before entering daily longs (-3 to -10bp)
 - Turnaround-Tuesday on SQQQ / anything long SQQQ
+- Warrior chart patterns, GENERIC LIQUID TRACK ONLY (2026-07-15, user's spec+detectors,
+  SPY+QQQ 5m 2016-2026 + SPY 1m 2022-26, next-bar-open + their R-sim, vs matched
+  baseline): ALL NEGATIVE-TO-NULL on index ETFs. 5-candle exhaustion reversal: loses
+  BOTH sides both symbols (PF 0.71-0.77, races 44-47% vs 48-49% base) = confirmation
+  tax + trend-break law (the "first new high" buys the retracement, starts nothing).
+  Flat-top breakout (3-touch): PF 0.94-0.96, drift 0 = unconditioned breakouts dead
+  without the volume filter (S/R chapter redux). Failed-flat-top bull-trap short:
+  PF 0.42-0.47 (intrabar fill caveat noted; next-bar-open also negative). 10-candle
+  1m reversal: n=254, faint long whisper (55% race, +1.4bp) < costs. NOT TESTED:
+  track 2 (small-cap premarket gappers, the guide's native habitat) — requires
+  dynamic gapper universe build; verdict explicitly does NOT extend there.
 - VWAP-rollover fade (EMA9 up->down turn while extended above a still-rising VWAP,
   target VWAP tag, 0.25% stop): structure REAL (morning rollovers tag VWAP 60-66%,
   both symbols) but ALL 24 cells net-negative — win capped at distance-to-VWAP (~0.12%)
