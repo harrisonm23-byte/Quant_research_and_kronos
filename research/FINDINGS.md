@@ -227,3 +227,111 @@ EXTERNAL VALIDATION: a public 9,120-backtest / 30-asset / 2010-2025 survivor ter
   ranked top survivors as RSI/Keltner/Zscore Revert (mean reversion) + Turtle/ADX/Dual
   Momentum (trend), best Sharpes 1.0-1.18, scored by cross-asset survival count. Same two
   families, same replication discipline, same realistic Sharpe range we converged on.
+
+## 10. CONDITIONAL PROBABILITIES OF THE OPEN (2026-07-16)
+
+### 10a. 2×2 Open States: {prev day up/down} × {gap up/down}
+
+SPY+QQQ, 5m bars 2016-2026. Outcomes: P(open→close up), avg O→C, P(closes green vs prevC).
+
+| State               | SPY n | P(O→C up) | avg O→C | QQQ n | P(O→C up) | avg O→C |
+|----------------------|-------|-----------|---------|-------|-----------|---------|
+| prev DOWN + gap DOWN | 479   | 57%       | +0.07%  | 477   | 56%       | +0.10%  |
+| prev DOWN + gap UP   | 548   | 52%       | +0.01%  | 543   | 55%       | +0.09%  |
+| prev UP + gap DOWN   | 648   | 56%       | +0.05%  | 650   | 54%       | +0.03%  |
+| prev UP + gap UP     | 936   | 51%       | -0.02%  | 946   | 52%       | +0.00%  |
+
+Day shape (prev-DOWN + gap-DOWN): LOW arrives early (med 90m, P(1st hr) 42-44%),
+HIGH arrives late (med 125-190m, P(last hr) 28-34%). LEAD CASE detail below.
+
+### 10b. First-30-Min Direction SPLITS the 57% Recovery (KEY FINDING)
+
+The 57% recovery rate on down-down days is an AVERAGE of two very different states.
+The first 30 minutes determines which camp you're in:
+
+| First 30 min       | SPY n | P(O→C up) | avg O→C | QQQ n | P(O→C up) | avg O→C |
+|---------------------|-------|-----------|---------|-------|-----------|---------|
+| flush (f30 < -0.1%) | 154   | 33%       | -0.37%  | 177   | 34%       | -0.51%  |
+| bounce (f30 > 0%)    | 250   | 70%       | +0.33%  | 265   | 72%       | +0.54%  |
+
+Halves stable: flush SPY 32%→34%, QQQ 32%→35%; bounce SPY 75%→65%, QQQ 79%→68%.
+The decay in bounce-half-2 is real but still strong.
+
+**BUT: not tradeable as a delayed entry.** By the time you observe the first 30 min
+and buy at 10:00 AM, the remaining return (10:00→close) collapses:
+- Bounce days: SPY 58% P(+), avg +0.06%. QQQ 59%, avg +0.12%. Too small for costs.
+- Flush days: SPY 51%, QQQ 47%. Near random from 10:00 onward.
+
+The first 30 minutes IS the signal — it can't be filtered for a later trade.
+
+### 10c. Gap-Fill Timing Ladder (SPY+QQQ avg, both replicate)
+
+| Gap-down size   | n (SPY) | Fill 30m | Fill 1h | Fill 2h | Fill day |
+|-----------------|---------|----------|---------|---------|----------|
+| < -0.5%         | 339     | 3%       | 9%      | 15%     | 32%      |
+| -0.5..-0.2%     | 354     | 22%      | 33%     | 42%     | 59%      |
+| -0.2..-0.05%    | 319     | 55%      | 67%     | 78%     | 84%      |
+| tiny (>-0.05%)  | 116     | 86%      | 90%     | 93%     | 95%      |
+
+| Gap-up size     | n (SPY) | Fill 30m | Fill 1h | Fill 2h | Fill day |
+|-----------------|---------|----------|---------|---------|----------|
+| > +0.5%         | 418     | 3%       | 9%      | 15%     | 29%      |
+| 0.2..0.5%       | 553     | 16%      | 29%     | 41%     | 56%      |
+| 0.05..0.2%      | 400     | 48%      | 61%     | 67%     | 77%      |
+| tiny (<0.05%)   | 130     | 90%      | 95%     | 97%     | 98%      |
+
+Symmetric by magnitude. Gaps > ±0.5% don't fill same-day (68-71% hold).
+Gaps < ±0.2% fill 77-84% of the time. Useful context; not a trade.
+
+### 10d. Consecutive Down Days
+
+| State                    | SPY n | P(O→C up) | avg O→C | QQQ n | P(O→C up) | avg O→C |
+|--------------------------|-------|-----------|---------|-------|-----------|---------|
+| 1 down + gap down        | 277   | 55%       | -0.01%  | 286   | 55%       | +0.05%  |
+| 2 consec down + gap down | 126   | 57%       | +0.08%  | 123   | 61%       | +0.12%  |
+| 3+ consec down + gap down| 76    | 61%       | +0.35%  | 68    | 50%       | +0.32%  |
+
+SPY shows 61% at 3+ down + gap down, but QQQ = 50% — FAILS replication.
+The avg return is similar (+0.32-35%), driven by outlier recoveries on big selloffs.
+
+### 10e. IBS × Conditional States — Context Doesn't Help
+
+Testing whether adding down-down context improves the deployed IBS<0.15 signal:
+
+| State                     | SPY n | P(+) | avg fwd1 | QQQ n | P(+) | avg fwd1 |
+|---------------------------|-------|------|----------|-------|------|----------|
+| IBS<0.15 (baseline)       | 343   | 57%  | +0.07%   | 345   | 57%  | +0.15%   |
+| IBS<0.15 + prev dn        | 304   | 57%  | +0.07%   | 319   | 56%  | +0.16%   |
+| IBS<0.15 + down + gap dn  | 158   | 53%  | -0.00%   | 165   | 56%  | +0.20%   |
+
+Adding the down-down context to IBS HURTS SPY (57%→53%) and is neutral on QQQ.
+HALVES tell the story: IBS+down+gap-dn in 2016-20 was 60%/69% (SPY/QQQ);
+in 2021-26 it decayed to 49%/47%. The context boost was real but has been
+arbitraged out. Plain IBS<0.15 is more stable (57%/56% across halves for SPY).
+
+### 10f. Other Conditionals — Null or Marginal
+
+- **Day of week**: Mon/Thu slightly better for down-down recovery, but n per cell
+  too small (~90-100) and no consistent pattern across SPY/QQQ.
+- **Prior day range (wide vs narrow)**: Wide prior day + gap down → 58%/57% vs
+  narrow 55%/54%. +3pp, marginal, not enough to trade.
+- **Two-day combo**: after a down-down day that bounced (O→C up), the NEXT day
+  is 52-55% up — the bounce doesn't persist. After a down-down FAIL, next day
+  is 57%/55% up with avg +0.14-18% — slightly better (more oversold).
+
+### 10g. VERDICTS
+
+DESCRIPTIVE LAWS (real, not tradeable):
+1. Down-down days recover 57% O→C — but the first 30 min determines which camp
+2. Gap-fill probability scales linearly with gap magnitude (see ladder)
+3. Consecutive down days slightly increase recovery probability (mean-reversion)
+
+NOT DEPLOYABLE (costs kill, confirmation tax, or doesn't replicate):
+- First-30-min direction: strong descriptor but residual return after observation < costs
+- Consecutive-down context on IBS: decayed in recent half, dilutes the signal
+- Day-of-week, prior-day-range: marginal, noisy, don't replicate cleanly
+
+GRADE SYSTEM IMPLICATION: do NOT add a "consecutive down" bonus to the IBS grade.
+The context was informative in 2016-20 but is no longer additive. The plain IBS
+signal + existing grade (vol, SMA20>50, Friday, SKEW, RSI, red-count, range)
+remains the best combination.
