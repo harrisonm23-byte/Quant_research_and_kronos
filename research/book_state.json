@@ -1,14 +1,14 @@
 {
   "start_date": "2026-07-02",
   "note": "AGG-MAX weights locked 2026-07-13: A 55% equity MR via TQQQ, B 10% GLD/USO trend, C 20% crypto down-spike H2 (BTC/ETH/DOGE/LINK), D 15% cash/crisis. A-signals still computed on QQQ; executed in TQQQ.",
-  "open": [
-    {"sleeve": "A", "strategy": "IBS", "symbol": "TQQQ", "signal_symbol": "QQQ", "signal_date": "2026-07-13",
-     "entry_date": "2026-07-14", "entry_px": 75.22, "grade": 2.0,
-     "note": "IBS 0.19 at 7/13 close (QQQ 711.74), grade +2 GREEN. Filled 7/14 open 75.20 +2bp slip (QQQ gapped +1.1% overnight). Exit rule: QQQ IBS>0.70 close -> sell next open. First AGG-MAX trade."}
-  ],
+  "open": [],
   "closed": [
     {"sleeve": "A", "strategy": "IBS", "symbol": "QQQ", "entry_date": "2026-07-02", "entry_px": 725.71,
      "exit_date": "2026-07-09", "exit_px": 718.19, "ret": -0.01036, "grade": null,
-     "note": "pre-grade signal from 7/1 close; exit IBS 0.93 at 7/8 close, filled 7/9 open 718.33 less 2bp slip; worst mark -2.24%"}
+     "note": "pre-grade signal from 7/1 close; exit IBS 0.93 at 7/8 close, filled 7/9 open 718.33 less 2bp slip; worst mark -2.24%"},
+    {"sleeve": "A", "strategy": "IBS", "symbol": "TQQQ", "signal_symbol": "QQQ",
+     "entry_date": "2026-07-14", "entry_px": 75.22,
+     "exit_date": "2026-07-22", "exit_px": 71.23, "ret": -0.0530, "grade": 2.0,
+     "note": "IBS 0.19 at 7/13 close, grade +2 GREEN. Exit: QQQ IBS=0.85 at 7/21 close -> sell 7/22 open. Exit px est 71.37 less 2bp slip = 71.23. Worst mark -10.2% (7/20). QQQ dropped 711->696 mid-hold, SMA20 crossed below SMA50 during trade."}
   ]
 }
