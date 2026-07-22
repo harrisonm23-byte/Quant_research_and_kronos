@@ -8,7 +8,7 @@
      "note": "pre-grade signal from 7/1 close; exit IBS 0.93 at 7/8 close, filled 7/9 open 718.33 less 2bp slip; worst mark -2.24%"},
     {"sleeve": "A", "strategy": "IBS", "symbol": "TQQQ", "signal_symbol": "QQQ",
      "entry_date": "2026-07-14", "entry_px": 75.22,
-     "exit_date": "2026-07-22", "exit_px": 71.23, "ret": -0.0530, "grade": 2.0,
-     "note": "IBS 0.19 at 7/13 close, grade +2 GREEN. Exit: QQQ IBS=0.85 at 7/21 close -> sell 7/22 open. Exit px est 71.37 less 2bp slip = 71.23. Worst mark -10.2% (7/20). QQQ dropped 711->696 mid-hold, SMA20 crossed below SMA50 during trade."}
+     "exit_date": "2026-07-22", "exit_px": 69.63, "ret": -0.0743, "grade": 2.0,
+     "note": "IBS 0.19 at 7/13 close, grade +2 GREEN. Exit: QQQ IBS=0.85 at 7/21 close -> sell 7/22 open 69.77 less 2bp slip = 69.63. Worst mark -10.2% (7/20). QQQ dropped 711->696 mid-hold, SMA20 crossed below SMA50 during trade."}
   ]
 }
